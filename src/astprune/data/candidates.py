@@ -18,6 +18,12 @@ import numpy as np
 from ..parse import quiet_ast_parse
 from ..scorers.bm25 import bm25_scores, tokenize
 
+# Files above this size are data tables or generated code (pydicom ships DICOM
+# dictionaries of up to 2.7 MB as .py files). No agent would read one whole, so
+# they are never offered as retrieved or imported candidates. The largest
+# hand-written files in the benchmark repositories are well below this.
+MAX_CANDIDATE_CHARS = 400_000
+
 _TEST_PATH = re.compile(r"(^|/)(tests?|testing)(/|$)|(^|/)test_[^/]*\.py$|_tests?\.py$|(^|/)conftest\.py$")
 _IMPORT_LINE = re.compile(r"^\s*(?:from\s+(\.*)([\w.]*)\s+import\s+(.+)|import\s+(.+))$")
 
@@ -144,11 +150,15 @@ class FileRetriever:
         self.repo = repo
         self.max_cache = max_cache
         self._tf_cache: dict[str, Counter] = {}
+        self._too_big: set[str] = set()   # blob ids over MAX_CANDIDATE_CHARS
 
     def _tf(self, path: str, sha: str) -> Counter:
         tf = self._tf_cache.get(sha)
         if tf is None:
             text = self.repo.read_blob(sha) or ""
+            if len(text) > MAX_CANDIDATE_CHARS:
+                self._too_big.add(sha)
+                text = ""
             tf = Counter(tokenize(path + "\n" + text))
             if len(self._tf_cache) >= self.max_cache:
                 self._tf_cache.clear()
@@ -160,6 +170,7 @@ class FileRetriever:
         paths = [p for p in sorted(tree) if include_tests or not is_test_path(p)]
         if not paths:
             return []
-        scores = bm25_scores(tokenize(issue), [self._tf(p, tree[p]) for p in paths])
-        order = np.argsort(-scores, kind="stable")[:top_k]
-        return [paths[i] for i in order]
+        tfs = [self._tf(p, tree[p]) for p in paths]
+        scores = bm25_scores(tokenize(issue), tfs)
+        ranked = [paths[i] for i in np.argsort(-scores, kind="stable") if tree[paths[i]] not in self._too_big]
+        return ranked[:top_k]

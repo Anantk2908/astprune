@@ -23,11 +23,15 @@
     "tree-sitter": 619,
     "ast": 2
   },
+  "nodes_per_gold_file_mean": 68.2,
+  "instances_without_gold_lines": 17,
   "bm25_file_recall": {
-    "all_gold_files_in_top5": 0.628,
-    "all_gold_files_in_top10": 0.736,
-    "all_gold_files_in_top20": 0.832
+    "all_gold_files_in_top5": 0.632,
+    "all_gold_files_in_top10": 0.734,
+    "all_gold_files_in_top20": 0.834
   },
+  "instances_with_oversized_gold_file": 0,
+  "instances_with_realigned_hunks": 11,
   "repos": {
     "astropy/astropy": 22,
     "django/django": 231,

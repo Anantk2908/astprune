@@ -181,12 +181,17 @@ def _ts_def(inner, outer) -> _Def:
 def _ts_members(children) -> tuple[list[_Def], list[int]]:
     defs: list[_Def] = []
     stmt_starts: list[int] = []
+    prev_end_row = -1
     for child in children:
         inner, outer = _ts_unwrap(child)
-        if inner is None:
-            stmt_starts.append(child.start_point[0] + 1)
-        else:
+        if inner is not None:
             defs.append(_ts_def(inner, outer))
+        elif child.start_point[0] > prev_end_row:
+            # Only something that starts its own line may begin a new block. A
+            # trailing comment such as "}  # type: Dict" sits on the last line of
+            # the statement before it, and cutting there would split that statement.
+            stmt_starts.append(child.start_point[0] + 1)
+        prev_end_row = max(prev_end_row, child.end_point[0])
     return defs, stmt_starts
 
 
@@ -222,11 +227,13 @@ def _ast_def(node) -> _Def:
 def _ast_members(body) -> tuple[list[_Def], list[int]]:
     defs: list[_Def] = []
     stmt_starts: list[int] = []
+    prev_end = 0
     for stmt in body:
         if isinstance(stmt, _AST_DEFS):
             defs.append(_ast_def(stmt))
-        else:
+        elif stmt.lineno > prev_end:  # "a = 1; b = 2" must stay in one block
             stmt_starts.append(stmt.lineno)
+        prev_end = max(prev_end, stmt.end_lineno or stmt.lineno)
     return defs, stmt_starts
 
 

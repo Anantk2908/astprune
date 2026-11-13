@@ -23,6 +23,7 @@ import numpy as np
 from ..parse import ParsedFile, node_text_for_scoring, parse_source
 from ..scorers.bm25 import BM25NodeScorer
 from ..scorers.encoder import BASE_MODEL, MAX_NODE_TOKENS, MAX_QUERY_TOKENS, InputBuilder, issue_text
+from .candidates import MAX_CANDIDATE_CHARS
 from .datasets import PROCESSED_DIR
 from .repos import Repo, RepoError
 
@@ -31,7 +32,6 @@ MAX_SAME_FILE_NEGATIVES = 32
 MAX_IMPORT_NEGATIVES = 16
 MAX_IMPORT_FILES = 3
 MIN_NEGATIVE_TOKENS = 8      # skips blank runs and one-line fillers
-MAX_FILE_LINES = 20_000      # generated files are not worth parsing
 
 
 def examples_dir(name: str = "train_examples") -> Path:
@@ -68,38 +68,41 @@ def build_repo_examples(repo_name: str, records: list[dict], seed: int = 0) -> d
             files: list[ParsedFile] = []
             for path in rec["oracle_files"]:
                 source = repo.read(rec["base_commit"], path)
-                if source is not None and source.count("\n") <= MAX_FILE_LINES:
+                if source is not None and len(source) <= MAX_CANDIDATE_CHARS:
                     files.append(parse_source(source, path))
             if not files:
                 continue
             scores = bm25.score(rec["issue"], files)
-            pos: list[int] = []
-            candidates: list[tuple[float, int]] = []
+            pos_texts: list[str] = []
+            candidates: list[tuple[float, str]] = []
             for pf in files:
                 for node in pf.nodes:
                     key = (pf.path, node.start)
                     if key in wanted:
-                        pos.append(text_id(node_text_for_scoring(pf, node)))
+                        pos_texts.append(node_text_for_scoring(pf, node))
                     elif key not in gold and node.tokens_full >= MIN_NEGATIVE_TOKENS:
-                        candidates.append((float(scores[pf.path][node.idx]),
-                                           text_id(node_text_for_scoring(pf, node))))
-            if not pos:
+                        candidates.append((float(scores[pf.path][node.idx]), node_text_for_scoring(pf, node)))
+            if not pos_texts:
                 continue
-            pos_set = set(pos)
-            candidates = [(s, t) for s, t in candidates if t not in pos_set]
+            # Only texts that end up in an example get an id, so nothing unused is stored.
+            taken = set(pos_texts)
+            candidates = [(s, t) for s, t in candidates if t not in taken]
             candidates.sort(key=lambda st: -st[0])
             half = MAX_SAME_FILE_NEGATIVES // 2
             lexical = [t for _, t in candidates[:half]]
             rest = [t for _, t in candidates[half:]]
             rng.shuffle(rest)
-            neg_same = list(dict.fromkeys(lexical + rest[: MAX_SAME_FILE_NEGATIVES - len(lexical)]))
+            same_texts = list(dict.fromkeys(lexical + rest[: MAX_SAME_FILE_NEGATIVES - len(lexical)]))
+            pos = [text_id(t) for t in dict.fromkeys(pos_texts)]
+            pos_set = set(pos)
+            neg_same = [text_id(t) for t in same_texts]
 
             neg_import: list[int] = []
             import_files = list(rec["import_files"])
             rng.shuffle(import_files)
             for path in import_files[:MAX_IMPORT_FILES]:
                 source = repo.read(rec["base_commit"], path)
-                if source is None or source.count("\n") > MAX_FILE_LINES:
+                if source is None or len(source) > MAX_CANDIDATE_CHARS:
                     continue
                 pf = parse_source(source, path)
                 pool = [n for n in pf.nodes if n.kind in POSITIVE_KINDS and n.tokens_full >= MIN_NEGATIVE_TOKENS]

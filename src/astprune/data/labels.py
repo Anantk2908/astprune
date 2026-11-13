@@ -28,6 +28,9 @@ class Insertion:
     after: int        # pre-fix line the new text goes after (0 = top of file)
     first: str        # first non-blank added line, unstripped
     last: str         # last non-blank added line, unstripped
+    has_def: bool = False     # the added lines contain a def or class line
+    body_only: bool = False   # the run is followed by removed lines: it may extend the
+                              # function above it, but is not a stand-alone insertion
 
 
 @dataclass
@@ -61,38 +64,44 @@ def parse_patch(patch: str) -> dict[str, FileEdit]:
         for hunk in pfile:
             prev_source = hunk.source_start - 1  # last pre-fix line passed so far
             run: list[str] = []                  # current run of added lines
-            run_is_rewrite = False               # run sits next to removed lines
-            last_was_removed = False
+            run_follows_removed = False          # run comes right after removed code
+            removed_code_before = False
 
-            def close_run() -> None:
-                # A run of added lines with no removed line next to it is a pure insertion.
+            def close_run(followed_by_removed: bool) -> None:
                 nonblank = [ln for ln in run if ln.strip()]
-                if nonblank and not run_is_rewrite:
-                    edit.insertions.append(Insertion(prev_source, nonblank[0], nonblank[-1]))
+                if not nonblank or run_follows_removed:
+                    # Replacement text for the removed lines. Their node is marked through them.
+                    return
+                has_def = any(ln.lstrip().startswith(("def ", "async def ", "class ")) for ln in nonblank)
+                edit.insertions.append(
+                    Insertion(prev_source, nonblank[0], nonblank[-1], has_def, body_only=followed_by_removed))
 
             edit.hunks.append((hunk.source_start, [ln.value.rstrip("\r\n") for ln in hunk
                                                    if ln.is_context or ln.is_removed]))
             for line in hunk:
                 if line.is_added:
                     if not run:
-                        run_is_rewrite = last_was_removed
+                        run_follows_removed = removed_code_before
                     run.append(line.value.rstrip("\r\n"))
                 elif line.is_removed:
+                    text = line.value.rstrip("\r\n")
+                    is_code = bool(text.strip())
                     if run:
-                        run_is_rewrite = True
-                        close_run()
+                        # A removed blank line next to new code is a pure insertion
+                        # that happened to swallow the blank, not a rewrite.
+                        close_run(followed_by_removed=is_code)
                         run = []
-                    edit.removed[line.source_line_no] = line.value.rstrip("\r\n")
+                    edit.removed[line.source_line_no] = text
                     prev_source = line.source_line_no
-                    last_was_removed = True
+                    removed_code_before = removed_code_before or is_code
                 elif line.is_context:
                     if run:
-                        close_run()
+                        close_run(followed_by_removed=False)
                         run = []
                     prev_source = line.source_line_no
-                    last_was_removed = False
+                    removed_code_before = False
             if run:
-                close_run()
+                close_run(followed_by_removed=False)
         if edit.removed or edit.insertions:
             edits[path] = edit
     return edits
@@ -141,7 +150,7 @@ def align_edit(pf: ParsedFile, edit: FileEdit) -> FileEdit | None:
     return FileEdit(
         path=edit.path,
         removed={shift(n): text for n, text in edit.removed.items()},
-        insertions=[Insertion(shift(i.after), i.first, i.last) for i in edit.insertions],
+        insertions=[Insertion(shift(i.after), i.first, i.last, i.has_def, i.body_only) for i in edit.insertions],
         hunks=[(start + offset, block) for (start, block), (_, _, offset) in zip(edit.hunks, bounds)],
     )
 
@@ -181,6 +190,14 @@ def _indent_of(text: str) -> int:
     return len(text) - len(text.lstrip())
 
 
+def _own_indent(pf: ParsedFile, node: Node) -> int:
+    """Indentation of the node's first line that has text (blocks can start with blank lines)."""
+    for i in range(node.start, node.end + 1):
+        if pf.lines[i - 1].strip():
+            return _indent_of(pf.lines[i - 1])
+    return 0
+
+
 def _insertion_target(pf: ParsedFile, ins: Insertion) -> Node | None:
     n_lines = len(pf.lines)
     before = node_at(pf, ins.after) if ins.after >= 1 else None
@@ -189,19 +206,27 @@ def _insertion_target(pf: ParsedFile, ins: Insertion) -> Node | None:
     adds_definition = ins.first.lstrip().startswith(_DEF_STARTS)
 
     if before is not None:
-        own_indent = _indent_of(pf.lines[before.start - 1])
+        own_indent = _own_indent(pf, before)
         if before.kind in ("function", "method"):
             if added_indent > own_indent:
                 return before  # deeper than the def line, so it is in that body
         elif before.kind == "class":
             if added_indent > own_indent and not (adds_definition and added_indent == before.body_indent):
                 return before  # new attribute or docstring text, not a new method
-        elif added_indent == own_indent and not adds_definition:
-            return before      # new statement in a run of statements
+        elif not ins.body_only and not adds_definition:
+            inside = after is not None and after.idx == before.idx
+            # Inside a run of statements any new line belongs to it, including a
+            # continuation line of a multi-line import. At its edge only a line
+            # at the same level does.
+            if (inside and added_indent >= own_indent) or added_indent == own_indent:
+                return before
+    if ins.body_only:
+        return None
 
-    # "@decorator" added directly above an existing def changes that def.
-    if after is not None and after.start == ins.after + 1 and ins.last.lstrip().startswith("@"):
-        if after.kind in ("function", "method", "class"):
+    # A decorator added directly above an existing def changes that def. It may
+    # span several lines, so look at how the run starts as well as how it ends.
+    if after is not None and after.start == ins.after + 1 and after.kind in ("function", "method", "class"):
+        if ins.last.lstrip().startswith("@") or (ins.first.lstrip().startswith("@") and not ins.has_def):
             return after
     return None
 

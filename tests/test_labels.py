@@ -212,3 +212,115 @@ def test_hunk_that_fits_nowhere_is_rejected():
              return y
         '''))["pkg/mod.py"]
     assert align_edit(pf, edit) is None
+
+
+def test_multi_line_decorator_marks_the_function_below():
+    pf, g, nodes, funcs = gold('''\
+        @@ -9,5 +9,9 @@
+         
+         
+        +@deprecated(
+        +    since="2.0",
+        +    alternative="gamma",
+        +)
+         def beta(x):
+             return x * 2
+         
+        ''')
+    assert funcs == ["beta"]
+
+
+def test_new_decorated_function_marks_nothing():
+    pf, g, nodes, funcs = gold('''\
+        @@ -9,5 +9,10 @@
+         
+         
+        +@cache
+        +def gamma(x):
+        +    return x
+        +
+        +
+         def beta(x):
+             return x * 2
+         
+        ''')
+    assert funcs == []
+
+
+def test_blank_line_replaced_by_code_marks_the_function():
+    before = BEFORE.replace("    y = x + 1\n    return y\n", "    y = x + 1\n\n    return y\n")
+    pf = parse_source(before, "pkg/mod.py")
+    edit = parse_patch(patch_for('''\
+        @@ -6,4 +6,4 @@
+         def alpha(x):
+             y = x + 1
+        -
+        +    y = abs(y)
+             return y
+        '''))["pkg/mod.py"]
+    edit = align_edit(pf, edit)
+    g = gold_for_file(pf, edit)
+    assert [pf.nodes[i].name for i in g.function_idx] == ["alpha"]
+
+
+def test_line_appended_to_a_body_just_before_a_rewritten_neighbour():
+    # The new line ends first()'s body and the very next diff line rewrites second().
+    # The added run touches removed code, but it still changes first().
+    before = "def first():\n    return 1\ndef second():\n    return 2\n"
+    pf = parse_source(before, "pkg/mod.py")
+    edit = parse_patch(patch_for('''\
+        @@ -1,4 +1,5 @@
+         def first():
+             return 1
+        +    leftover = True
+        -def second():
+        +def second(x=0):
+             return 2
+        '''))["pkg/mod.py"]
+    g = gold_for_file(pf, align_edit(pf, edit))
+    assert [pf.nodes[i].name for i in g.function_idx] == ["first", "second"]
+
+
+def test_line_appended_to_a_method_next_to_a_removed_blank_line():
+    pf, g, nodes, funcs = gold('''\
+        @@ -18,5 +18,6 @@
+             def area(self):
+                 return self.size ** 2
+        +        self.cached = True
+        -
+        -    def volume(self):
+        +
+        +    def volume(self, depth=1):
+                 return self.size ** 3
+        ''')
+    assert funcs == ["Box.area", "Box.volume"]
+
+
+def test_attribute_added_to_a_class_block_that_starts_with_a_blank_line():
+    before = BEFORE.replace("    def volume(self):", "    label = 'box'\n\n    def volume(self):")
+    pf = parse_source(before, "pkg/mod.py")
+    edit = parse_patch(patch_for('''\
+        @@ -20,4 +20,5 @@
+         
+             label = 'box'
+        +    colour = 'red'
+         
+             def volume(self):
+        '''))["pkg/mod.py"]
+    g = gold_for_file(pf, align_edit(pf, edit))
+    assert len(g.node_idx) == 1 and pf.nodes[g.node_idx[0]].kind == "block" and g.function_idx == []
+
+
+def test_continuation_line_added_inside_an_import_marks_the_block():
+    before = "from pkg import (\n    alpha,\n    beta,\n)\n\nX = 1\n"
+    pf = parse_source(before, "pkg/mod.py")
+    edit = parse_patch(patch_for('''\
+        @@ -1,4 +1,5 @@
+         from pkg import (
+             alpha,
+        +    gamma,
+             beta,
+         )
+        '''))["pkg/mod.py"]
+    g = gold_for_file(pf, align_edit(pf, edit))
+    assert len(g.node_idx) == 1 and g.lines

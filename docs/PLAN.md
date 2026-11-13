@@ -1,5 +1,21 @@
 # Plan: Learned AST Pruning for Token-Budgeted Code Context (full project build)
 
+## Status
+
+Ticked when the phase exit criteria are met and the phase has been audited. Details per phase are in `docs/PROGRESS.md`.
+
+- [x] Phase 0. Setup
+- [x] Phase 1. Parser, token counter, selector
+- [x] Phase 2. Data and labels
+- [ ] Phase 3. Untrained methods and the evaluation harness
+- [ ] Phase 4. Train the ranker
+- [ ] Phase 5. External baselines
+- [ ] Phase 6. Scaling, latency, error analysis
+- [ ] Phase 7. MCP server and demo
+- [ ] Phase 8. Stretch: downstream effect
+- [ ] Phase 9. README, tutorial, notebook, reproduction check
+- [ ] Phase 10. Report and slides
+
 ## Context
 
 Course project for CSCI-GA 3033-091 (Anant Kumar, Marcellanous Ellonye). Final proposal (Oct 30) promises: a small trained ranker (UniXcoder-base, InfoNCE) that picks which functions/classes of a Python file an agent sees under a token budget, evaluated on SWE-bench Lite without running tests, compared against training-free methods, and shipped as an MCP server with a live demo.
@@ -140,7 +156,7 @@ After each phase: run `pytest`, tick the box in `docs/PLAN.md`, append to `docs/
 - Time-boxed. Cut first if anything upstream slips.
 
 ### Phase 9. README, tutorial, notebook, reproduction check
-- README written plainly: what it is, results table with the real numbers, install, run the demo, rerun experiments, hardware and time costs, limits, troubleshooting. Short sentences, no em-dashes, no hype words. A grep for "—" over README, docs and report must come back empty.
+- README written plainly: what it is, results table with the real numbers, install, run the demo, rerun experiments, hardware and time costs, limits, troubleshooting. Short sentences, no em-dashes, no hype words. A grep for the em-dash character over README, docs and report must come back empty.
 - `docs/tutorial.md`, `docs/architecture.md`, `docs/ta_feedback.md` (TA asked for related literature and a metrics plan, and where each was addressed), `data/README.md`, `.env.example`.
 - `notebooks/analysis.ipynb` regenerates every figure from `results/`.
 - Exit: clone the repo into a scratch folder, make a fresh venv, follow the README commands exactly, demo and tests work.

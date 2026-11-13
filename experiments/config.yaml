@@ -28,10 +28,25 @@ models:
   max_query_tokens: 512
   max_node_tokens: 256
 
+# Training-free perplexity scorer (LongCodeZip's ranking criterion, our own code).
+# LongCodeZip's paper uses a 7B model; this is what fits next to everything else on 8 GB.
+perplexity:
+  model: Qwen/Qwen2.5-Coder-1.5B-Instruct
+  max_query_tokens: 256
+  max_node_tokens: 384
+
+# Official third-party baselines. They need extra installs, see the module docstrings.
+longcodezip:
+  model: Qwen/Qwen2.5-Coder-1.5B-Instruct
+swe_pruner:
+  checkpoint: checkpoints/swe_pruner
+
 # Methods run by default. Names are resolved in src/astprune/registry.py.
 methods:
   untrained: [line_window, chunk_bm25, chunk_unixcoder, skeleton, ast_random, ast_bm25, ast_unixcoder]
   trained: [ast_trained, ast_hybrid]
+  perplexity: [ast_ppl]
+  external: [longcodezip_rank, longcodezip, swe_pruner]
   ablations: [ast_trained_nosig, ast_trained_sig15, ast_trained_sig30, ast_trained_density, ast_trained_perfile,
               ast_bm25_nosig, ast_bm25_perfile]
 
@@ -46,6 +61,7 @@ comparisons:
     - [ast_trained, ast_unixcoder]
     - [ast_trained, ast_bm25]
     - [ast_hybrid, ast_bm25]
+    - [ast_trained, ast_ppl]
 
 bootstrap:
   resamples: 10000

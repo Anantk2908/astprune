@@ -20,7 +20,7 @@ from collections import Counter, defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
-from astprune.data.candidates import FileRetriever, ModuleIndex, is_test_path
+from astprune.data.candidates import MAX_CANDIDATE_CHARS, FileRetriever, ModuleIndex, is_test_path
 from astprune.data.datasets import PROCESSED_DIR, SPLITS, load_raw, processed_path
 from astprune.data.labels import align_edit, edit_matches_file, gold_for_file, parse_patch
 from astprune.data.repos import PROJECT_ROOT, Repo, RepoError
@@ -55,8 +55,11 @@ def process_instance(repo: Repo, retriever: FileRetriever | None, row: dict) -> 
         if source is None:
             rec["status"] = "skipped:file_missing"
             return rec
+        if len(source) > MAX_CANDIDATE_CHARS:
+            rec["oversized_gold_file"] = True
         pf = parse_source(source, path)
         parse_fallbacks[pf.parser] += 1
+        rec["gold_file_nodes"] = rec.get("gold_file_nodes", 0) + len(pf.nodes)
         aligned = align_edit(pf, edit)
         if aligned is None or not edit_matches_file(pf, aligned):
             rec["status"] = "skipped:patch_mismatch"
@@ -76,7 +79,14 @@ def process_instance(repo: Repo, retriever: FileRetriever | None, row: dict) -> 
         for imp in index.direct_imports(path, source):
             if imp not in imports and not is_test_path(imp):
                 imports.append(imp)
-    rec["import_files"] = [p for p in imports if p not in rec["oracle_files"]][:MAX_IMPORT_FILES]
+    for imp in imports:
+        if len(rec["import_files"]) >= MAX_IMPORT_FILES:
+            break
+        if imp in rec["oracle_files"]:
+            continue
+        text = repo.read(commit, imp)
+        if text is not None and len(text) <= MAX_CANDIDATE_CHARS:
+            rec["import_files"].append(imp)
     rec["parsers"] = dict(parse_fallbacks)
     if retriever is not None:
         rec["bm25_files"] = retriever.rank(commit, rec["issue"], top_k=BM25_TOP_K)
@@ -127,7 +137,12 @@ def summarise(split: str, records: list[dict]) -> dict:
         "oracle_files_per_instance_mean": round(sum(len(r["oracle_files"]) for r in ok) / max(len(ok), 1), 3),
         "import_files_per_instance_mean": round(sum(len(r["import_files"]) for r in ok) / max(len(ok), 1), 3),
         "gold_file_parsers": dict(parsers),
+        "nodes_per_gold_file_mean": round(
+            sum(r.get("gold_file_nodes", 0) for r in ok) / max(sum(len(r["oracle_files"]) for r in ok), 1), 1),
+        "instances_without_gold_lines": sum(not any(r["gold_lines"].values()) for r in ok),
         "bm25_file_recall": recall_at,
+        "instances_with_oversized_gold_file": sum(bool(r.get("oversized_gold_file")) for r in ok),
+        "instances_with_realigned_hunks": sum(r.get("realigned_hunks", 0) > 0 for r in ok),
         "repos": dict(sorted(Counter(r["repo"] for r in ok).items())),
     }
 

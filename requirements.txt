@@ -1,0 +1,27 @@
+# Tested versions (Python 3.12, Linux/WSL2, CUDA 13 wheels).
+# Install with: pip install -r requirements.txt && pip install -e .
+# torch is the default PyPI build, which ships with CUDA support on Linux.
+
+torch==2.15.0
+transformers==5.23.0
+tokenizers==0.23.3
+accelerate==1.15.0
+datasets==5.2.0
+huggingface-hub==2.4.0
+numpy==2.5.4
+scipy==1.18.1
+tree-sitter==0.26.1
+tree-sitter-python==0.25.0
+tiktoken==0.14.0
+unidiff==1.0.1
+mcp==2.3.0
+pyyaml==6.0.3
+rich==15.0.0
+tqdm==4.70.1
+pandas==3.1.1
+matplotlib==3.11.2
+pytest==9.2.0
+
+# Optional, only for the stretch experiment with a 4-bit 7B model (experiments/downstream.py):
+# bitsandbytes
+# Optional third-party baselines, see src/astprune/baselines/longcodezip.py and swe_pruner.py.

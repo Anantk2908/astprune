@@ -139,6 +139,8 @@ def select(
     if not 0.0 <= sig_reserve < 1.0:
         raise ValueError("sig_reserve must be in [0, 1)")
     ranking = _ranking(files, scores, order, temperature)
+    if everything_fits(files, budget):
+        return {pf.path: [FULL] * len(pf.nodes) for pf in files}
     b = _Budget(files)
 
     full_cap = budget if not sig_tier else math.floor(budget * (1.0 - sig_reserve))
@@ -156,6 +158,11 @@ def select(
                 b.raise_to(path, idx, FULL)
 
     return fit_exactly(files, b.states, ranking, budget, sig_tier=sig_tier)
+
+
+def everything_fits(files: list[ParsedFile], budget: int) -> bool:
+    """True when the unpruned files are within budget, so nothing needs to go."""
+    return sum(pf.n_tokens for pf in files) <= budget
 
 
 def fit_exactly(files: list[ParsedFile], states: States, ranking: list[tuple[str, int]],
@@ -265,13 +272,13 @@ def render_file(pf: ParsedFile, states: list[int]) -> PrunedFile:
         if pending:
             out.append(_marker(pending, len(first) - len(first.lstrip())))
             pending = 0
-        for oc in open_classes:  # every class still open contains this node
-            oc[2] = True
+        if node.kind != "block" or _has_statement(pf.lines[node.start - 1 : node.end]):
+            for oc in open_classes:  # every class still open contains this node
+                oc[2] = True
         if node.kind == "class":
             if state == FULL:
                 emit(node.start, node.end)
-                rest = pf.lines[node.sig_end : node.end]
-                has_stmt = any(ln.strip() and not ln.strip().startswith("#") for ln in rest)
+                has_stmt = _has_statement(pf.lines[node.sig_end : node.end])
             else:
                 emit(node.start, node.sig_end)
                 pending += node.end - node.sig_end
@@ -288,6 +295,11 @@ def render_file(pf: ParsedFile, states: list[int]) -> PrunedFile:
     if pending:
         out.append(_marker(pending))
     return PrunedFile(path=pf.path, text="\n".join(out), kept_lines=kept)
+
+
+def _has_statement(lines: list[str]) -> bool:
+    """True if any line is code. Blank lines and comments cannot serve as a class body."""
+    return any(ln.strip() and not ln.strip().startswith("#") for ln in lines)
 
 
 def render(files: list[ParsedFile], states: States) -> PrunedContext:

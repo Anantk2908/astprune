@@ -123,3 +123,51 @@ def test_bad_arguments_are_rejected(sample_source):
         select([pf], {pf.path: np.zeros(3)}, 100)
     with pytest.raises(ValueError):
         select([pf], scores, 100, order="nope")
+
+
+def test_budget_equal_to_the_file_returns_the_file(sample_source):
+    pf = parse_source(sample_source, "sample.py")
+    rng = np.random.default_rng(3)
+    states = select([pf], {pf.path: rng.normal(size=len(pf.nodes))}, pf.n_tokens)
+    assert render([pf], states)[pf.path].text == sample_source
+
+
+def test_class_with_only_a_comment_kept_still_parses():
+    src = (
+        "class Field:\n"
+        "    # The comment below sits between two methods.\n"
+        "    def first(self):\n"
+        "        return 1\n"
+        "\n"
+        "    # HACK: explain second\n"
+        "\n"
+        "    def second(self):\n"
+        "        return 2\n"
+    )
+    pf = parse_source(src, "f.py")
+    comment_blocks = [n for n in pf.nodes if n.kind == "block"]
+    assert comment_blocks, "expected the comment between methods to be its own block"
+    states = [DROP] * len(pf.nodes)
+    states[comment_blocks[0].idx] = FULL
+    text = render_file(pf, states).text
+    ast.parse(text)
+    assert "class Field:" in text
+
+
+def test_real_world_shaped_file_always_parses_under_random_selection():
+    body = ",\n".join(f"    'k{i}': {i}" for i in range(70))
+    src = (
+        "import os\n\n"
+        f"DEFAULTS = {{\n{body}\n}}  # type: dict\n\n\n"
+        "class A:\n    x = 1\n\n    # note\n\n    def f(self):\n        return 1\n\n"
+        "    # trailing note\n\n\n"
+        "class B(A):\n    def g(self):\n        return 2\n"
+    )
+    pf = parse_source(src, "w.py")
+    total = count_tokens(src)
+    for seed in range(40):
+        rng = np.random.default_rng(seed)
+        for fraction in (0.05, 0.15, 0.3, 0.6):
+            states = select([pf], {pf.path: rng.normal(size=len(pf.nodes))}, int(total * fraction),
+                            sig_reserve=0.2 if seed % 2 else 0.0)
+            ast.parse(render([pf], states)[pf.path].text)

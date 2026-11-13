@@ -77,6 +77,15 @@ class Registry:
                 from .scorers.encoder import EncoderNodeScorer
 
                 base = EncoderNodeScorer(self.encoder(key), name=key)
+            elif key == "ppl":
+                from .scorers.perplexity import DEFAULT_MODEL, PerplexityNodeScorer
+
+                opts = self.config.get("perplexity", {})
+                base = PerplexityNodeScorer(
+                    opts.get("model", DEFAULT_MODEL), device=self.device,
+                    max_query_tokens=opts.get("max_query_tokens", 256),
+                    max_node_tokens=opts.get("max_node_tokens", 384),
+                )
             elif key == "hybrid":
                 base = HybridScorer([self.scorer("bm25"), self.scorer("trained")], name="hybrid")
             elif key == "hybrid_zs":

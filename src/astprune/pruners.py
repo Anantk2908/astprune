@@ -12,7 +12,7 @@ from __future__ import annotations
 import numpy as np
 
 from .parse import ParsedFile
-from .select import FULL, SIG, States, _Budget, fit_exactly, render, select
+from .select import FULL, SIG, States, _Budget, everything_fits, fit_exactly, render, select
 from .types import PrunedContext
 
 
@@ -62,7 +62,9 @@ class SkeletonPruner:
     def prepare(self, issue: str, files: list[ParsedFile]) -> None:
         return None
 
-    def prune(self, prepared: None, files: list[ParsedFile], budget: int) -> PrunedContext:
+    def select_states(self, files: list[ParsedFile], budget: int) -> States:
+        if everything_fits(files, budget):
+            return {pf.path: [FULL] * len(pf.nodes) for pf in files}
         b = _Budget(files)
         in_order = [(pf.path, node.idx) for pf in files for node in pf.nodes]
         for path, idx in in_order:
@@ -71,4 +73,7 @@ class SkeletonPruner:
         for path, idx in in_order:
             if b.spent + b.cost_to_raise(path, idx, FULL) <= budget:
                 b.raise_to(path, idx, FULL)
-        return render(files, fit_exactly(files, b.states, in_order, budget, sig_tier=True))
+        return fit_exactly(files, b.states, in_order, budget, sig_tier=True)
+
+    def prune(self, prepared: None, files: list[ParsedFile], budget: int) -> PrunedContext:
+        return render(files, self.select_states(files, budget))

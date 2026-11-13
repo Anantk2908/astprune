@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "astprune": {
+      "command": ".venv/bin/python",
+      "args": ["-m", "astprune.server"],
+      "env": {
+        "ASTPRUNE_SCORER": "auto"
+      }
+    }
+  }
+}

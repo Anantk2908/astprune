@@ -89,3 +89,18 @@ def test_long_constant_runs_are_split_at_statements():
     pf = parse_source(src, "consts.py")
     assert len(pf.nodes) >= 3
     assert all(n.end - n.start + 1 <= MAX_BLOCK_LINES + 1 for n in pf.nodes)
+
+
+def test_trailing_comment_never_splits_a_statement():
+    body = ",\n".join(f"    'key{i}': {i}" for i in range(60))
+    src = f"import os\n\nSETTINGS = {{\n{body}\n}}  # type: Dict[str, Any]\n\nOTHER = 1\n"
+    pf = parse_source(src, "consts.py")
+    owner = {n.idx for n in pf.nodes if n.start <= 3 <= n.end or n.start <= 64 <= n.end}
+    assert len(owner) == 1  # the opening and closing brace are in the same node
+
+
+def test_two_statements_on_one_line_stay_together():
+    src = "\n".join(f"a{i} = {i}; b{i} = {i}" for i in range(100)) + "\n"
+    pf = parse_source(src, "pairs.py")
+    covered = [i for n in pf.nodes for i in range(n.start, n.end + 1)]
+    assert covered == list(range(1, len(pf.lines) + 1))

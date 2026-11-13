@@ -8,26 +8,30 @@
   },
   "instances_with_gold_function": 209,
   "instances_without_gold_function": 14,
-  "gold_functions_total": 809,
-  "gold_functions_per_instance_mean": 3.871,
+  "gold_functions_total": 810,
+  "gold_functions_per_instance_mean": 3.876,
   "gold_functions_per_instance_hist": {
     "1": 92,
     "2": 32,
     "3": 23,
-    "4": 12,
-    "5": 9,
+    "4": 11,
+    "5": 10,
     "6": 41
   },
   "oracle_files_per_instance_mean": 2.143,
-  "import_files_per_instance_mean": 8.287,
+  "import_files_per_instance_mean": 8.278,
   "gold_file_parsers": {
     "tree-sitter": 478
   },
+  "nodes_per_gold_file_mean": 39.8,
+  "instances_without_gold_lines": 0,
   "bm25_file_recall": {
-    "all_gold_files_in_top5": 0.5291,
-    "all_gold_files_in_top10": 0.6413,
-    "all_gold_files_in_top20": 0.7489
+    "all_gold_files_in_top5": 0.5247,
+    "all_gold_files_in_top10": 0.6457,
+    "all_gold_files_in_top20": 0.7534
   },
+  "instances_with_oversized_gold_file": 0,
+  "instances_with_realigned_hunks": 1,
   "repos": {
     "marshmallow-code/marshmallow": 9,
     "pvlib/pvlib-python": 62,
