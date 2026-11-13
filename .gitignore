@@ -1,0 +1,36 @@
+# environment
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+*.egg-info/
+.env
+
+# large or regenerated things (see data/README.md for how to rebuild them)
+data/cache/
+data/repos/
+data/processed/
+checkpoints/
+logs/
+results/**/pruned_outputs/
+
+# course material that is not ours to republish
+FA26_CSCI_GA_3033_1_091_CRSE*.pdf
+project-deliverables.pptx
+
+# loose copies of the proposals (tracked copies live in docs/proposal/)
+/Final_Proposal_Learned_AST_Pruning_1page.pdf
+/Proposal_Learned_AST_Pruning_1page.pdf
+/Project Proposal Learned AST Pruning for Token-Budgeted Code Context.*
+
+# latex build files
+report/*.aux
+report/*.log
+report/*.out
+report/*.bbl
+report/*.blg
+report/*.synctex.gz
+
+# local claude settings
+.claude/settings.local.json

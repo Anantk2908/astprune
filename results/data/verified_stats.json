@@ -1,0 +1,45 @@
+{
+  "split": "verified",
+  "instances_total": 500,
+  "instances_ok": 500,
+  "status_counts": {
+    "ok": 500
+  },
+  "instances_with_gold_function": 458,
+  "instances_without_gold_function": 42,
+  "gold_functions_total": 836,
+  "gold_functions_per_instance_mean": 1.825,
+  "gold_functions_per_instance_hist": {
+    "1": 336,
+    "2": 62,
+    "3": 22,
+    "4": 12,
+    "5": 6,
+    "6": 20
+  },
+  "oracle_files_per_instance_mean": 1.242,
+  "import_files_per_instance_mean": 10.032,
+  "gold_file_parsers": {
+    "tree-sitter": 619,
+    "ast": 2
+  },
+  "bm25_file_recall": {
+    "all_gold_files_in_top5": 0.628,
+    "all_gold_files_in_top10": 0.736,
+    "all_gold_files_in_top20": 0.832
+  },
+  "repos": {
+    "astropy/astropy": 22,
+    "django/django": 231,
+    "matplotlib/matplotlib": 34,
+    "mwaskom/seaborn": 2,
+    "pallets/flask": 1,
+    "psf/requests": 8,
+    "pydata/xarray": 22,
+    "pylint-dev/pylint": 10,
+    "pytest-dev/pytest": 19,
+    "scikit-learn/scikit-learn": 32,
+    "sphinx-doc/sphinx": 44,
+    "sympy/sympy": 75
+  }
+}

@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astprune"
+version = "0.1.0"
+description = "Learned AST pruning for token-budgeted code context"
+requires-python = ">=3.11"
+authors = [
+  { name = "Anant Kumar" },
+  { name = "Marcellanous Ellonye" },
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+  "gpu: needs a CUDA device and downloaded model weights",
+  "slow: takes more than a few seconds",
+]

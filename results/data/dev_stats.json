@@ -1,0 +1,39 @@
+{
+  "split": "dev",
+  "instances_total": 225,
+  "instances_ok": 223,
+  "status_counts": {
+    "ok": 223,
+    "skipped:no_python_edit": 2
+  },
+  "instances_with_gold_function": 209,
+  "instances_without_gold_function": 14,
+  "gold_functions_total": 809,
+  "gold_functions_per_instance_mean": 3.871,
+  "gold_functions_per_instance_hist": {
+    "1": 92,
+    "2": 32,
+    "3": 23,
+    "4": 12,
+    "5": 9,
+    "6": 41
+  },
+  "oracle_files_per_instance_mean": 2.143,
+  "import_files_per_instance_mean": 8.287,
+  "gold_file_parsers": {
+    "tree-sitter": 478
+  },
+  "bm25_file_recall": {
+    "all_gold_files_in_top5": 0.5291,
+    "all_gold_files_in_top10": 0.6413,
+    "all_gold_files_in_top20": 0.7489
+  },
+  "repos": {
+    "marshmallow-code/marshmallow": 9,
+    "pvlib/pvlib-python": 62,
+    "pydicom/pydicom": 56,
+    "pylint-dev/astroid": 31,
+    "pyvista/pyvista": 16,
+    "sqlfluff/sqlfluff": 49
+  }
+}

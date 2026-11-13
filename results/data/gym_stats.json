@@ -1,0 +1,41 @@
+{
+  "split": "gym",
+  "instances_total": 2438,
+  "instances_ok": 2353,
+  "status_counts": {
+    "ok": 2353,
+    "skipped:patch_mismatch": 5,
+    "skipped:no_python_edit": 80
+  },
+  "instances_with_gold_function": 2256,
+  "instances_without_gold_function": 97,
+  "gold_functions_total": 8011,
+  "gold_functions_per_instance_mean": 3.551,
+  "gold_functions_per_instance_hist": {
+    "1": 1057,
+    "2": 420,
+    "3": 201,
+    "4": 140,
+    "5": 86,
+    "6": 352
+  },
+  "oracle_files_per_instance_mean": 2.011,
+  "import_files_per_instance_mean": 11.038,
+  "gold_file_parsers": {
+    "tree-sitter": 4733
+  },
+  "bm25_file_recall": {},
+  "repos": {
+    "Project-MONAI/MONAI": 374,
+    "bokeh/bokeh": 26,
+    "conan-io/conan": 75,
+    "dask/dask": 145,
+    "facebookresearch/hydra": 66,
+    "getmoto/moto": 342,
+    "iterative/dvc": 224,
+    "modin-project/modin": 107,
+    "pandas-dev/pandas": 656,
+    "pydantic/pydantic": 82,
+    "python/mypy": 256
+  }
+}
