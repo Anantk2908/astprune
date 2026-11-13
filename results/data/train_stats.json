@@ -1,35 +1,39 @@
 {
   "split": "train",
   "instances_total": 19008,
-  "instances_ok": 16837,
+  "instances_ok": 16840,
   "status_counts": {
-    "ok": 16837,
-    "skipped:clone_failed": 3,
+    "ok": 16840,
     "skipped:no_python_edit": 2117,
     "skipped:patch_mismatch": 51
   },
-  "instances_with_gold_function": 14730,
-  "instances_without_gold_function": 2107,
-  "gold_functions_total": 72226,
+  "instances_with_gold_function": 14751,
+  "instances_without_gold_function": 2089,
+  "gold_functions_total": 72317,
   "gold_functions_per_instance_mean": 4.903,
   "gold_functions_per_instance_hist": {
-    "1": 7045,
-    "2": 2552,
-    "3": 1357,
-    "4": 822,
-    "5": 506,
-    "6": 2448
+    "1": 7054,
+    "2": 2555,
+    "3": 1362,
+    "4": 825,
+    "5": 503,
+    "6": 2452
   },
   "oracle_files_per_instance_mean": 2.556,
   "import_files_per_instance_mean": 9.236,
   "gold_file_parsers": {
-    "tree-sitter": 42966,
+    "tree-sitter": 42981,
     "tree-sitter-partial": 67,
     "ast": 2
   },
+  "nodes_per_gold_file_mean": 45.0,
+  "instances_without_gold_lines": 200,
   "bm25_file_recall": {},
+  "instances_with_oversized_gold_file": 37,
+  "instances_with_realigned_hunks": 377,
   "repos": {
     "DataDog/integrations-core": 62,
+    "JohnSnowLabs/spark-nlp": 3,
     "Lightning-AI/lightning": 372,
     "PrefectHQ/prefect": 401,
     "Qiskit/qiskit": 1394,

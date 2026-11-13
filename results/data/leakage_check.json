@@ -1,6 +1,7 @@
 {
   "train_repos": [
     "DataDog/integrations-core",
+    "JohnSnowLabs/spark-nlp",
     "Lightning-AI/lightning",
     "PrefectHQ/prefect",
     "Project-MONAI/MONAI",
@@ -84,5 +85,5 @@
   },
   "overlap_after_filter": [],
   "dropped_for_overlap": 0,
-  "dropped_duplicates": 74
+  "dropped_duplicates": 75
 }

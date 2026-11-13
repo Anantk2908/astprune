@@ -122,3 +122,13 @@ def test_bootstrap_intervals():
     assert mean_ci([])["mean"] is None
     with pytest.raises(ValueError):
         paired_diff([1, 2], [1])
+
+
+def test_oracle_candidates_do_not_list_gold_files_first():
+    from astprune.evaluation import candidate_paths
+
+    rec = {"oracle_files": ["pkg/zeta.py"], "import_files": ["pkg/alpha.py", "pkg/mid.py"],
+           "bm25_files": ["pkg/mid.py", "pkg/zeta.py", "pkg/alpha.py"]}
+    assert candidate_paths(rec, "oracle_imports") == ["pkg/alpha.py", "pkg/mid.py", "pkg/zeta.py"]
+    assert candidate_paths(rec, "oracle") == ["pkg/zeta.py"]
+    assert candidate_paths(rec, "bm25_5") == rec["bm25_files"]  # retrieval order is kept

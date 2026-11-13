@@ -34,3 +34,7 @@ report/*.synctex.gz
 
 # local claude settings
 .claude/settings.local.json
+
+# half-written files from interrupted runs
+*.tmp
+*.shard*.jsonl

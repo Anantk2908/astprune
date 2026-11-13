@@ -23,11 +23,17 @@ SETTINGS = ("oracle", "oracle_imports", "bm25_5", "bm25_10", "bm25_20")
 
 
 def candidate_paths(rec: dict, setting: str) -> list[str]:
-    """Files a method may look at for this issue under ``setting``."""
+    """Files a method may look at for this issue under ``setting``.
+
+    Oracle settings return paths in alphabetical order. Listing the gold files
+    first would leak the answer to any method that fills in file order (the
+    skeleton baseline does). BM25 settings keep retrieval rank order, which is
+    information a real agent would also have.
+    """
     if setting == "oracle":
-        return list(rec["oracle_files"])
+        return sorted(rec["oracle_files"])
     if setting == "oracle_imports":
-        return list(rec["oracle_files"]) + [p for p in rec["import_files"] if p not in rec["oracle_files"]]
+        return sorted(set(rec["oracle_files"]) | set(rec["import_files"]))
     if setting.startswith("bm25_"):
         return list(rec["bm25_files"][: int(setting.split("_")[1])])
     raise ValueError(f"unknown setting: {setting}")

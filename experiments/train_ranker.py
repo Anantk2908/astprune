@@ -42,6 +42,8 @@ def main() -> None:
     ap.add_argument("--max-per-repo", type=int, default=defaults.max_per_repo)
     ap.add_argument("--evals-per-epoch", type=int, default=defaults.evals_per_epoch)
     ap.add_argument("--dev-limit", type=int, default=0, help="use only N dev issues (smoke test)")
+    ap.add_argument("--resume", action="store_true",
+                    help="continue an interrupted run of the same name from its last dev check")
     ap.add_argument("--promote", action="store_true",
                     help="do not train; copy this run's best checkpoint to checkpoints/ranker/best")
     args = ap.parse_args()
@@ -70,7 +72,7 @@ def main() -> None:
     if args.dev_limit:
         dev = dev[: args.dev_limit]
     print(f"run {args.run_name}: {len(examples)} examples, {len(dev)} dev issues", flush=True)
-    summary = train(cfg, examples, nodes, queries, dev, run_dir)
+    summary = train(cfg, examples, nodes, queries, dev, run_dir, resume=args.resume)
 
     out = PROJECT_ROOT / "results" / "training"
     out.mkdir(parents=True, exist_ok=True)

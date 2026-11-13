@@ -49,6 +49,9 @@ class TrainConfig:
     dev_setting: str = "oracle_imports"
     dev_budgets: tuple[float, ...] = (0.10, 0.25)
     amp: bool = True
+    # Recomputes activations in the backward pass instead of storing them. On an
+    # 8 GB card a batch of 96 nodes needs 12 GB without it and 3.7 GB with it.
+    grad_checkpointing: bool = True
 
 
 def set_seed(seed: int) -> None:
@@ -144,24 +147,31 @@ def dev_recall(encoder: Encoder, records: list[dict], setting: str, budgets: tup
 
 
 def train(cfg: TrainConfig, examples: list[dict], nodes: TokenStore, queries: TokenStore,
-          dev_records: list[dict], out_dir: Path) -> dict:
-    """Fine-tune and keep the checkpoint with the best dev recall in ``out_dir/best``."""
+          dev_records: list[dict], out_dir: Path, resume: bool = False) -> dict:
+    """Fine-tune and keep the checkpoint with the best dev recall in ``out_dir/best``.
+
+    The full training state is saved after every dev check. With ``resume`` an
+    interrupted run continues from its last check.
+    """
     set_seed(cfg.seed)
-    rng = random.Random(cfg.seed)
     out_dir.mkdir(parents=True, exist_ok=True)
     examples = filter_examples(examples, cfg.max_gold_functions)
 
     encoder = Encoder(cfg.base_model, name="training")
     model = encoder.model
+    if cfg.grad_checkpointing:
+        model.gradient_checkpointing_enable()
     model.train()
     device = encoder.device
     use_amp = cfg.amp and device == "cuda"
 
     steps_per_epoch = len(epoch_order(examples, cfg.max_per_repo, random.Random(0))) // cfg.batch_issues
+    if steps_per_epoch == 0:
+        raise ValueError("not enough training examples for one batch")
     total_batches = int(steps_per_epoch * cfg.epochs)
     total_updates = max(1, total_batches // cfg.accumulate)
     warmup = max(1, int(total_updates * cfg.warmup_fraction))
-    eval_every = max(1, steps_per_epoch // cfg.evals_per_epoch)
+    eval_every = max(cfg.accumulate, steps_per_epoch // cfg.evals_per_epoch // cfg.accumulate * cfg.accumulate)
 
     decay, no_decay = [], []
     for name, param in model.named_parameters():
@@ -178,8 +188,24 @@ def train(cfg: TrainConfig, examples: list[dict], nodes: TokenStore, queries: To
 
     loader = FileLoader()
     history: list[dict] = []
-    log = (out_dir / "train_log.jsonl").open("w")
     best = {"mean_recall": -1.0}
+    step = 0
+    minutes_before = 0.0
+    state_path = out_dir / "state.pt"
+    if resume and state_path.exists():
+        # Pick up after the last dev check of an interrupted run.
+        state = torch.load(state_path, map_location=device, weights_only=False)
+        model.load_state_dict(state["model"])
+        optimizer.load_state_dict(state["optimizer"])
+        scheduler.load_state_dict(state["scheduler"])
+        scaler.load_state_dict(state["scaler"])
+        step, history, best, minutes_before = state["step"], state["history"], state["best"], state["minutes"]
+        print(f"  resumed from step {step} ({minutes_before:.1f} training minutes so far)", flush=True)
+    log = (out_dir / "train_log.jsonl").open("a" if step else "w")
+    started = time.time()
+
+    def minutes() -> float:
+        return minutes_before + (time.time() - started) / 60
 
     def evaluate_and_save(step: int) -> None:
         nonlocal best
@@ -191,20 +217,30 @@ def train(cfg: TrainConfig, examples: list[dict], nodes: TokenStore, queries: To
             best = metrics
             model.save_pretrained(out_dir / "best")
             encoder.tokenizer.save_pretrained(out_dir / "best")
+        tmp = state_path.with_suffix(".tmp")
+        torch.save({"model": model.state_dict(), "optimizer": optimizer.state_dict(),
+                    "scheduler": scheduler.state_dict(), "scaler": scaler.state_dict(),
+                    "step": step, "history": history, "best": best, "minutes": minutes()}, tmp)
+        tmp.replace(state_path)  # never leave a half-written state file behind
 
-    evaluate_and_save(0)  # zero-shot reference with the same code path
+    if step == 0:
+        evaluate_and_save(0)  # zero-shot reference with the same code path
 
-    started = time.time()
-    step = 0
     running_loss, running_acc, seen = 0.0, 0.0, 0
     optimizer.zero_grad(set_to_none=True)
+    order: list[int] = []
+    order_epoch = -1
     while step < total_batches:
-        order = epoch_order(examples, cfg.max_per_repo, rng)
-        for start in range(0, len(order) - cfg.batch_issues + 1, cfg.batch_issues):
-            if step >= total_batches:
-                break
+        # The order of an epoch and the negatives of a step depend only on the
+        # seed and their index, so a resumed run continues exactly where it was.
+        epoch, position = divmod(step, steps_per_epoch)
+        if epoch != order_epoch:
+            order = epoch_order(examples, cfg.max_per_repo, random.Random(f"{cfg.seed}:epoch:{epoch}"))
+            order_epoch = epoch
+        if True:
+            start = position * cfg.batch_issues
             batch = [examples[i] for i in order[start : start + cfg.batch_issues]]
-            node_ids, targets, ignore = make_batch(batch, cfg, rng)
+            node_ids, targets, ignore = make_batch(batch, cfg, random.Random(f"{cfg.seed}:step:{step}"))
             node_in = encoder.pad([nodes[i].astype(np.int64).tolist() for i in node_ids])
             query_in = encoder.pad([queries[ex["query"]].astype(np.int64).tolist() for ex in batch])
             with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=use_amp):
@@ -228,7 +264,7 @@ def train(cfg: TrainConfig, examples: list[dict], nodes: TokenStore, queries: To
             seen += 1
             if step % 50 == 0:
                 row = {"step": step, "loss": round(running_loss / seen, 4), "top1": round(running_acc / seen, 4),
-                       "lr": scheduler.get_last_lr()[0], "minutes": round((time.time() - started) / 60, 2),
+                       "lr": scheduler.get_last_lr()[0], "minutes": round(minutes(), 2),
                        "gpu_gb": round(torch.cuda.max_memory_allocated() / 2**30, 2) if device == "cuda" else 0}
                 log.write(json.dumps(row) + "\n")
                 log.flush()
@@ -244,7 +280,7 @@ def train(cfg: TrainConfig, examples: list[dict], nodes: TokenStore, queries: To
 
     summary = {
         "config": asdict(cfg), "examples_used": len(examples), "steps_per_epoch": steps_per_epoch,
-        "total_batches": total_batches, "train_minutes": round((time.time() - started) / 60, 1),
+        "total_batches": total_batches, "train_minutes": round(minutes(), 1),
         "parameters": encoder.n_parameters, "best": best, "dev_history": history,
         "gpu": torch.cuda.get_device_name(0) if device == "cuda" else "cpu", "torch": torch.__version__,
     }
