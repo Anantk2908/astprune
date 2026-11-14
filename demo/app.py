@@ -163,7 +163,8 @@ def main() -> int:
         return 0
     request = request_from_args(args, samples)
 
-    console.print(Panel(request["issue"].strip()[:700] or "(no issue text)",
+    issue_text = request["issue"].strip()
+    console.print(Panel((issue_text[:420] + " ...") if len(issue_text) > 420 else issue_text or "(no issue text)",
                         title=f"Issue: {request['title']}", expand=False))
     console.print(f"Files the agent wants to read: {', '.join(request['files'])}")
     try:

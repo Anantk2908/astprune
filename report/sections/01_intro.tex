@@ -1,0 +1,27 @@
+\section{Introduction}
+
+Coding agents such as Claude Code, SWE-agent and OpenHands work by reading code. They locate files with text search and then, in most cases, read those files whole. A file with two thousand lines costs the agent two thousand lines of context even when the bug sits in one twenty-line method. The cost shows up in three places: the context window fills with code that does not matter, every later step of the agent pays for those tokens again, and a model running on a local GPU runs out of memory sooner.
+
+Cutting context is easy. Cutting it without losing the code the agent needs is the problem. If the function that must be edited is removed, the agent cannot fix the bug. If a helper it calls is removed, the agent may invent one.
+
+This project builds and evaluates a pruner for that setting. Given an issue description, a set of Python files and a token budget, it returns a view of the files that fits the budget. The unit of pruning is the function, method or class, obtained from the syntax tree, and never a line or a fixed-size chunk. A small encoder, fine-tuned on real bug fixes, scores each unit against the issue. A selector then keeps the best units whole, shows the next ones as signatures, and drops the rest. The pruner is packaged as a Model Context Protocol (MCP) server so that an agent can call it in place of a file read.
+
+We ask three research questions.
+
+\begin{itemize}
+\item \textbf{RQ1.} How much code can be cut before the functions that need fixing are lost?
+\item \textbf{RQ2.} Does a ranker trained on real bug fixes keep the right functions more often than training-free ranking of the same functions?
+\item \textbf{RQ3.} Does pruning whole functions beat pruning lines or text chunks?
+\end{itemize}
+
+Our hypotheses, stated in the proposal before any experiment, were: (H1) at budgets of 10 to 25\% of the candidate tokens, function-level pruning keeps more of the functions changed by the gold patch than line or chunk methods; (H2) training helps most at tight budgets and the gap shrinks as the budget grows. We also wrote down in advance that a trained ranker merely matching BM25 would be a finding in its own right, since it would mean identifier names carry most of the signal.
+
+\paragraph{Findings.} On SWE-bench Lite, with the gold files and the files they import as candidates, the trained ranker keeps \res{lite:oracle_imports:ast_trained:r0.10:gold_fn_recall}\% of gold functions in full at a 10\% budget and \res{lite:oracle_imports:ast_trained:r0.25:gold_fn_recall}\% at 25\%. BM25 on the same units keeps \res{lite:oracle_imports:ast_bm25:r0.10:gold_fn_recall}\% and \res{lite:oracle_imports:ast_bm25:r0.25:gold_fn_recall}\%, the same encoder without fine-tuning keeps \res{lite:oracle_imports:ast_unixcoder:r0.10:gold_fn_recall}\% and \res{lite:oracle_imports:ast_unixcoder:r0.25:gold_fn_recall}\%, and BM25 over text chunks keeps \res{lite:oracle_imports:chunk_bm25:r0.10:gold_fn_recall}\% and \res{lite:oracle_imports:chunk_bm25:r0.25:gold_fn_recall}\%. Both hypotheses are supported, with one qualification for H1 that we discuss in Section~\ref{sec:results}: on a metric that ignores function boundaries, chunk retrieval finds the edited lines about as often as BM25 over syntax-tree units does.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+\item A function-level pruner with a hard token budget and a three-state output (full, signature, dropped) that is valid Python by construction.
+\item A way to get training labels for this task from existing data at no cost: a unit is relevant to an issue if the fix for that issue changed it. This gives \stat{examples:examples} training examples from \stat{examples:repos} repositories.
+\item A controlled comparison in which the trained and untrained rankers share the units, the selector, the budget and the encoder architecture, so that the measured gap is the effect of training alone, with paired bootstrap intervals on two test sets.
+\item An MCP server and client demo, and a repository in which every reported number is regenerated from committed per-issue results.
+\end{enumerate}

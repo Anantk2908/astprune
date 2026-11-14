@@ -70,6 +70,8 @@ class PruningService:
 
                 encoder = Encoder(str(self.checkpoint), device=self.device, name="trained")
                 trained = EncoderNodeScorer(encoder, name="trained")
+                encoder.embed(["warm up"], 16)  # pay for CUDA start-up here, not on the first request
+                encoder.clear_cache()
                 self.device_name = encoder.device
                 if wanted == "hybrid":  # rank fusion with BM25, kept as an option
                     scorer, self.scorer_name = HybridScorer([bm25, trained], name="hybrid"), "hybrid"

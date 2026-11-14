@@ -1,0 +1,40 @@
+\documentclass[conference]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{cite}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\graphicspath{{../results/figures/}}
+\input{numbers}
+\newcommand{\T}[1]{\input{../results/tables/#1.tex}}
+
+\begin{document}
+
+\title{Learned AST Pruning for Token-Budgeted Code Context}
+
+\author{\IEEEauthorblockN{Anant Kumar}
+\IEEEauthorblockA{New York University\\ak10760@nyu.edu}
+\and
+\IEEEauthorblockN{Marcellanous Ellonye}
+\IEEEauthorblockA{New York University\\mbe7982@nyu.edu}}
+
+\maketitle
+
+\begin{abstract}
+Coding agents read whole source files, although most of a file is irrelevant to the bug at hand. We train a small ranker that decides, function by function, what an agent should see under a fixed token budget. Files are split into functions, methods and classes with tree-sitter. A 125M-parameter encoder, fine-tuned with a contrastive loss on \stat{examples:examples} real bug fixes, scores each unit against the issue text, and a selector keeps the best units whole, shows the next ones as signatures and drops the rest, so the result is always valid Python. On SWE-bench Lite, with the gold files and their imports as candidates, the pruner keeps \res{lite:oracle_imports:ast_trained:r0.10:gold_fn_recall}\% of the functions changed by the gold patch at a 10\% budget and \res{lite:oracle_imports:ast_trained:r0.25:gold_fn_recall}\% at 25\%, against \res{lite:oracle_imports:ast_bm25:r0.10:gold_fn_recall}\% and \res{lite:oracle_imports:ast_bm25:r0.25:gold_fn_recall}\% for BM25 over the same units and \res{lite:oracle_imports:chunk_bm25:r0.10:gold_fn_recall}\% and \res{lite:oracle_imports:chunk_bm25:r0.25:gold_fn_recall}\% for BM25 over text chunks. The gain from training is largest at tight budgets and shrinks as the budget grows. The pruner is served as a Model Context Protocol tool. All tuning used a separate validation split, and every number is regenerated from released per-issue results.
+\end{abstract}
+
+\input{sections/01_intro}
+\input{sections/02_related}
+\input{sections/03_method}
+\input{sections/04_setup}
+\IfFileExists{sections/05_results.tex}{\input{sections/05_results}}{}
+\IfFileExists{sections/06_analysis.tex}{\input{sections/06_analysis}}{}
+\IfFileExists{sections/07_discussion.tex}{\input{sections/07_discussion}}{}
+
+\input{sections/references}
+
+\end{document}

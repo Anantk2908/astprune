@@ -14,6 +14,12 @@ Paired bootstrap differences in gold-function recall, lite, bm25 top-5 files.
 | H1 | AST + BM25 | Chunk RAG (BM25) | 1000 tok | +15.8 | [+11.1, +20.7] | <0.001 | 274 |
 | H1 | AST + BM25 | Chunk RAG (BM25) | 2000 tok | +15.5 | [+10.4, +20.7] | <0.001 | 274 |
 | H1 | AST + BM25 | Chunk RAG (BM25) | 4000 tok | +16.5 | [+11.1, +22.0] | <0.001 | 274 |
+| H1 | AST + UniXcoder, zero-shot | Chunk RAG (UniXcoder, zero-shot) | 10% | +19.5 | [+14.4, +24.8] | <0.001 | 274 |
+| H1 | AST + UniXcoder, zero-shot | Chunk RAG (UniXcoder, zero-shot) | 25% | +16.0 | [+10.9, +21.3] | <0.001 | 274 |
+| H1 | AST + UniXcoder, zero-shot | Chunk RAG (UniXcoder, zero-shot) | 50% | +12.2 | [+7.6, +16.9] | <0.001 | 274 |
+| H1 | AST + UniXcoder, zero-shot | Chunk RAG (UniXcoder, zero-shot) | 1000 tok | +14.6 | [+10.4, +19.0] | <0.001 | 274 |
+| H1 | AST + UniXcoder, zero-shot | Chunk RAG (UniXcoder, zero-shot) | 2000 tok | +16.5 | [+11.6, +21.5] | <0.001 | 274 |
+| H1 | AST + UniXcoder, zero-shot | Chunk RAG (UniXcoder, zero-shot) | 4000 tok | +16.2 | [+11.4, +21.2] | <0.001 | 274 |
 | H2 | AST + trained ranker (ours) | AST + UniXcoder, zero-shot | 10% | +25.5 | [+20.4, +30.6] | <0.001 | 274 |
 | H2 | AST + trained ranker (ours) | AST + UniXcoder, zero-shot | 25% | +20.2 | [+15.6, +24.7] | <0.001 | 274 |
 | H2 | AST + trained ranker (ours) | AST + UniXcoder, zero-shot | 50% | +9.8 | [+6.5, +13.3] | <0.001 | 274 |

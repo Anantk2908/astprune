@@ -1,0 +1,54 @@
+\section{Method}
+\label{sec:method}
+
+The pruner takes an issue text $q$, a set of files $F$ and a budget of $B$ tokens. It returns, for each file, a view whose total size is at most $B$. Figure~\ref{fig:pipeline} shows the four steps.
+
+\begin{figure}[t]
+\centering
+\footnotesize
+\begin{tabular}{@{}c@{}}
+\fbox{\parbox{0.92\columnwidth}{\centering issue text, files, token budget}}\\
+$\downarrow$\\
+\fbox{\parbox{0.92\columnwidth}{\centering \textbf{Parse} (tree-sitter): each file becomes a list of units\\ function, method, class header, block of other statements}}\\
+$\downarrow$\\
+\fbox{\parbox{0.92\columnwidth}{\centering \textbf{Score}: fine-tuned UniXcoder embeds the issue and every unit, score is the cosine}}\\
+$\downarrow$\\
+\fbox{\parbox{0.92\columnwidth}{\centering \textbf{Select}: in score order, pooled over files, until the budget is full\\ full body \;/\; signature only \;/\; dropped}}\\
+$\downarrow$\\
+\fbox{\parbox{0.92\columnwidth}{\centering \textbf{Render}: valid Python, omissions marked, served over MCP}}
+\end{tabular}
+\caption{The pruning pipeline. The demo, the MCP server and the experiments all run this one implementation.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Units}
+
+We parse each file with tree-sitter and partition its lines into units, so that every line belongs to exactly one unit. A top-level function is a unit, decorators included. A class is split into a header (the \texttt{class} line, its docstring and any attributes before the first method) and one unit per method, because a fix usually changes one method and keeping a whole class to show one method wastes budget. Statements between definitions, such as imports and constants, form block units, which are cut at statement boundaries when a run exceeds 40 lines. Functions nested in functions stay with their parent.
+
+The partition has three useful consequences. A view with every unit kept is the original file byte for byte. The number of omitted lines can be reported exactly. And a line touched by a patch maps to one unit, which is what makes automatic labels possible (Section~\ref{sec:labels}). If tree-sitter reports a syntax error we try Python's \texttt{ast} module, and if that fails as well we keep tree-sitter's partial tree, which is still correct outside the broken region.
+
+\subsection{Scoring}
+
+The scorer is a bi-encoder. The issue and each unit are passed separately through the same encoder, UniXcoder-base~\cite{unixcoder} (\stat{train:main:params_m}M parameters), the token embeddings are mean-pooled and normalized, and the score of a unit is the cosine between its vector and the issue vector. The issue is represented by its first 512 tokens, which covers the title and usually a traceback. A unit is represented by its file path, its qualified name and its first 256 tokens, which covers the signature, the docstring if there is one, and the opening lines of the body.
+
+We chose a bi-encoder over a cross-encoder for cost. A cross-encoder reads the issue and a unit together and would likely rank better, but it needs one forward pass per pair. With a bi-encoder, unit embeddings depend only on the code. They are computed once, reused for every budget, and shared between issues that touch the same files.
+
+\paragraph{Training.} For an issue with gold units $P$ and other units $N$, we sample one positive $p \in P$ and minimize the InfoNCE loss~\cite{infonce}
+\[
+\mathcal{L} = -\log \frac{\exp(s(q,p)/\tau)}{\exp(s(q,p)/\tau) + \sum_{n \in \mathcal{N}} \exp(s(q,n)/\tau)},
+\]
+where $s$ is cosine similarity, $\tau = 0.05$, and $\mathcal{N}$ holds the negatives sampled for this issue together with every unit that other issues in the batch brought along. A ranking loss fits the data better than per-unit classification: an issue has one to three gold units among dozens to hundreds, and what matters at inference is their order.
+
+Negatives decide what the model learns~\cite{dpr}. Units from unrelated repositories are easy to tell apart and teach little. For each issue we take 8 negatives from the files the patch touches, half of them the non-gold units that BM25 ranks highest for the issue and half at random, and 3 from files those files import. The BM25-picked negatives are the units a lexical ranker would confuse with the answer, so the encoder is pushed to learn what BM25 cannot.
+
+\subsection{Selection and rendering}
+
+The selector walks the units of all candidate files in score order and gives each one of three states. \emph{Full} keeps the unit as is. \emph{Signature} keeps the \texttt{def} line and replaces the body with \texttt{...}, which tells an agent the function exists without paying for its body. \emph{Dropped} removes it, and each run of dropped units becomes one comment of the form \texttt{\# ... 40 lines omitted}.
+
+The fill has three passes: keep units whole while they fit, spend what is left on signatures of the next units, then use any remainder for more full units. A share of the budget can be reserved for the signature pass. The default reserves nothing, a choice made on the validation split (Section~\ref{sec:ablation}). The budget is pooled over files, so a good ranker can spend all of it on the one file that matters.
+
+Two details keep the output honest. First, validity: a method is never shown without its class line, a class shown with no member gets a \texttt{...} body, and markers are comments, which Python ignores for indentation. Second, the budget is enforced on the real output. The selector plans with an upper bound on cost, then renders, counts tokens, removes the lowest-ranked units if the view is over, and uses leftover room for the best remaining ones. Our view pays for its own markers.
+
+\subsection{Serving}
+
+The pruner is exposed as one MCP tool, \texttt{get\_budgeted\_context(issue, files, budget)}, over stdio, using the official Python SDK. The model is loaded once at start-up. Expected problems produce a result with a warning and never a crash: a missing file or one outside the workspace is skipped and named, a file with syntax errors is still pruned, a non-Python file is cut to its first lines, an empty issue yields signatures first, and a missing checkpoint falls back to BM25 ranking. A bad budget or an empty file list returns an MCP tool error that says what a valid request looks like, so the calling model can correct itself.

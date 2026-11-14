@@ -1,0 +1,34 @@
+\section{Related Work}
+\label{sec:related}
+
+We group prior work by what it prunes and how it decides. Table~\ref{tab:related} places our method among the closest systems.
+
+\paragraph{Retrieval and localization.} RepoCoder~\cite{repocoder} and RepoBench~\cite{repobench} retrieve fixed-size windows of code for completion. Fixed windows are simple and language-independent, but a window boundary can fall inside a function, so the model may see a body without its signature or the reverse. Agentless~\cite{agentless} localizes a bug in stages: it shows the model a skeleton of each file (signatures only), and asks it which parts to expand. This works well, but each stage is another LLM call per issue, and the skeleton itself is the same whatever the issue says. We reuse the skeleton idea as our middle tier and as a baseline, and replace the LLM call with one pass of a small encoder.
+
+\paragraph{Prompt compression.} LLMLingua~\cite{llmlingua} removes tokens that a small language model finds predictable. It is general, needs no training, and reaches high compression on prose. On code it has no notion of structure, and deleting predictable tokens from a program usually leaves something that is not a program. LongLLMLingua~\cite{longllmlingua} adds a question-aware coarse stage that ranks whole documents by how much they lower the perplexity of the question. LongCodeZip~\cite{longcodezip} brings this to code: it ranks function-level chunks by conditional perplexity and then prunes line blocks inside the kept functions with a knapsack. It is the closest training-free system to ours. Its strengths are that it needs no labels and works for any language its chunker handles. Its costs are a forward pass of a multi-billion-parameter LLM per chunk and, in its second stage, output that is no longer whole functions.
+
+\paragraph{Learned pruners for agents.} SWE-Pruner~\cite{swepruner} trains a 0.6B-parameter model to score tokens against a goal the agent states, averages scores per line, and keeps lines above a threshold. The authors report 23 to 54\% fewer agent tokens with little loss in task success. LaMR~\cite{lamr} extends this with separate heads for semantic evidence and dependency support and repairs the output using the syntax tree. SWEzze~\cite{swezze} takes a different route to labels: it searches, with delta debugging, for a minimal context that still lets an LLM produce a passing fix, and trains a compressor on the result. These systems are the state of the art for the end-to-end goal. They differ from ours in three ways that matter for our questions. Their labels come from a teacher LLM or from search, which is expensive to produce, where ours come for free from version history. They prune lines or tokens, where we never cut inside a function. And they keep whatever passes a threshold, where we fill a budget the caller sets.
+
+\paragraph{What this comparison told us.} Three design choices follow directly. First, structure: the systems that ignore it (LLMLingua, chunk retrieval) produce broken code, and the most recent learned pruner (LaMR) adds a syntax-tree repair step after the fact, so we made the syntax tree the unit from the start. Second, cost: perplexity ranking and LLM-driven expansion both scale with an LLM forward pass per unit or per issue, so we chose a bi-encoder whose unit embeddings can be cached. Third, control: a threshold cannot promise an agent that a tool result will fit in the space it has left, so the selector takes a budget. What we give up is also clear. We do not evaluate end-to-end task success, where SWE-Pruner, LaMR and SWEzze report results, and our labels say which code the fix changed, not which code a model needed to read in order to write the fix.
+
+\begin{table}[t]
+\caption{Closest prior systems and ours. ``LLM pass'' means a forward pass of a generative LLM is needed at pruning time.}
+\label{tab:related}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+System & Unit & Decides by & Labels & Output size \\
+\midrule
+Chunk retrieval~\cite{repocoder} & window & similarity & none & top-$k$ \\
+LLMLingua~\cite{llmlingua} & token & perplexity & none & ratio \\
+Agentless~\cite{agentless} & function & LLM pass & none & model's choice \\
+LongCodeZip~\cite{longcodezip} & function, block & LLM pass & none & soft budget \\
+SWE-Pruner~\cite{swepruner} & line & 0.6B model & teacher LLM & threshold \\
+LaMR~\cite{lamr} & line & 0.6B model & teacher + AST & threshold \\
+SWEzze~\cite{swezze} & subsequence & small model & search & learned \\
+\textbf{Ours} & function & 125M encoder & gold patches & hard budget \\
+\bottomrule
+\end{tabular}
+\end{table}

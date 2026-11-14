@@ -1,0 +1,80 @@
+\section{Experimental Setup}
+\label{sec:setup}
+
+\subsection{Data}
+
+Table~\ref{tab:data} lists the splits. Training uses the SWE-bench train split~\cite{swebench} and SWE-Gym~\cite{swegym}. Evaluation uses SWE-bench Lite as the main test set and SWE-bench Verified~\cite{swebenchverified} as a second one. The proposal named only Lite. We added Verified because it has more issues and more multi-function patches, and because it shares its 12 repositories with Lite, so it cost no extra data work. The two sets overlap in 93 issues and are reported separately, never pooled.
+
+All tuning used the SWE-bench dev split: 225 issues from 6 repositories that occur in neither the training nor the test data. The proposal did not include a validation split. We added one so that no decision would be made on test data. The checkpoint and every selector setting were fixed on dev and recorded in a commit before the first test run.
+
+\begin{table}[t]
+\caption{Data. ``Gold fn.'' is the number of existing functions and methods changed by the gold patches.}
+\label{tab:data}
+\centering
+\footnotesize
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Split & Repos & Issues & Labelled & With gold fn. & Gold fn. \\
+\midrule
+SWE-bench train & \stat{train:repos} & \stat{train:instances_total} & \stat{train:instances_ok} & \stat{train:instances_with_gold_function} & \stat{train:gold_functions_total} \\
+SWE-Gym & \stat{gym:repos} & \stat{gym:instances_total} & \stat{gym:instances_ok} & \stat{gym:instances_with_gold_function} & \stat{gym:gold_functions_total} \\
+SWE-bench dev & \stat{dev:repos} & \stat{dev:instances_total} & \stat{dev:instances_ok} & \stat{dev:instances_with_gold_function} & \stat{dev:gold_functions_total} \\
+SWE-bench Lite & \stat{lite:repos} & \stat{lite:instances_total} & \stat{lite:instances_ok} & \stat{lite:instances_with_gold_function} & \stat{lite:gold_functions_total} \\
+SWE-bench Verified & \stat{verified:repos} & \stat{verified:instances_total} & \stat{verified:instances_ok} & \stat{verified:instances_with_gold_function} & \stat{verified:gold_functions_total} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Leakage.} Train, dev and test share no repository. This is checked in code when training examples are built, and the build stops on any overlap. SWE-bench train and SWE-Gym share two repositories, and \stat{examples:dropped_duplicate} duplicate issues were removed. The field \texttt{hints\_text}, which holds comments written after an issue was filed, is never read.
+
+\subsection{Labels}
+\label{sec:labels}
+
+For each issue we read the files touched by the gold patch as they were at the base commit, directly from git objects, and partition them into units. A unit is \emph{gold} if the patch removes or rewrites a non-blank line in it, inserts lines into its body, or adds a decorator to it. Functions that the patch adds are not labels: they do not exist before the fix, so there is nothing to keep. Issues whose patch touches no Python file are skipped (\stat{train:skip_no_python_edit} in SWE-bench train, mostly documentation and Cython).
+
+Two data problems had to be solved along the way. Some patches do not apply to their base commit at the stated line numbers, only with an offset, which \texttt{git apply} tolerates silently. In Lite this affects \stat{lite:instances_with_realigned_hunks} patches. Half of them matched our first implementation at the wrong position and would have been labelled with the wrong functions without any error. We now move each hunk to where its context matches, as \texttt{patch} does. Second, one validation repository ships data tables of up to 2.7\,MB as Python files, which a retriever happily returns. Files above 400{,}000 characters are excluded from retrieved and imported candidates. No gold file in dev, Lite or Verified is that large.
+
+Label quality was audited independently of the label code: an auditor applied each gold patch with git and compared function text before and after. The two procedures agreed on all 300 Lite and all 500 Verified issues. In training data they disagreed on about 0.6\% of issues, which exposed three edge cases (multi-line decorators, a blank line replaced by code, and code appended next to a rewritten neighbour) that were then fixed.
+
+Issues with no gold function, where the patch only changes module-level code or only adds new functions, are excluded from function metrics. In Lite, \stat{lite:instances_with_gold_function} of 300 issues have a gold function, and \stat{lite:instances_without_gold_lines} have no pre-existing edited line at all and enter no recall metric.
+
+\subsection{Training examples and configuration}
+
+An example is an issue with at least one gold function, method or class header. There are \stat{examples:examples} examples from \stat{examples:repos} repositories. As planned in the proposal, patches that change more than five functions are treated as noisy and dropped, which leaves \stat{train:main:examples}. One repository, pandas, would supply a third of the data, so each epoch samples at most 1{,}500 issues per repository.
+
+We fine-tune for 2 epochs (\stat{train:main:steps} steps) with AdamW, learning rate $2\times10^{-5}$ with 5\% warm-up and linear decay, 8 issues per step with gradient accumulation over 2 steps, mixed precision, and gradient checkpointing. Checkpointing matters on an 8\,GB card: a batch of 96 units needs 12\,GB without it and 3.7\,GB with it. Training took \stat{train:main:minutes} minutes on an RTX 4060 Laptop GPU. Recall on dev was measured six times during training through the same code path as the final evaluation, and the best checkpoint (step \stat{train:main:best_step}) was kept.
+
+\subsection{Candidate files and budgets}
+
+A method can only keep a function that is in a file it was given, so we vary how files are chosen.
+
+\begin{itemize}
+\item \textbf{Gold files + imports} (primary): the files the gold patch edits and up to 15 files they import directly. This isolates pruning quality from file retrieval. Files are passed in alphabetical order, since listing gold files first would give the answer to any method that fills in file order.
+\item \textbf{Gold files only}: the hardest version of the same question, since every candidate unit comes from the right file.
+\item \textbf{BM25 top-$k$}, $k \in \{5, 10, 20\}$: files retrieved from the whole repository, test files excluded. This is the realistic setting, where a gold file can be missing. All gold files are within the top 5 for \stat{lite:all_gold_files_in_top5}\% of Lite issues and within the top 20 for \stat{lite:all_gold_files_in_top20}\%.
+\end{itemize}
+
+Budgets are 10\%, 25\% and 50\% of the candidate tokens, pooled over files. Relative budgets avoid the trivial case in which the files already fit. We also report fixed budgets of 1{,}000, 2{,}000 and 4{,}000 tokens on issues whose candidates exceed them. Tokens are counted with one tokenizer for all methods (tiktoken \texttt{cl100k\_base}), on each method's rendered output.
+
+\subsection{Methods compared}
+
+Every method receives the same files and the same budget.
+
+\begin{itemize}
+\item \textbf{Line window}: the first lines of each file, the same fraction of every file.
+\item \textbf{Chunk RAG}: chunks of about 256 tokens made of whole lines, ranked by BM25 or by zero-shot UniXcoder, kept in rank order.
+\item \textbf{Skeleton} (after Agentless): every signature, then full bodies in file order. It uses our units and renderer but ignores the issue.
+\item \textbf{AST + random / BM25 / zero-shot UniXcoder / LLM perplexity}: our units and selector with an untrained scorer. The zero-shot encoder is the cleanest control for RQ2, since only the weights differ from ours. The perplexity scorer applies the ranking criterion of LongCodeZip~\cite{longcodezip} to our units: a unit scores high if reading it first makes the issue text easier to predict for Qwen2.5-Coder-1.5B~\cite{qwencoder}.
+\item \textbf{AST + trained ranker} (ours), and its rank fusion with BM25~\cite{rrf}.
+\item \textbf{Third-party systems}: LongCodeZip and SWE-Pruner, run from the authors' released code. Section~\ref{sec:external} states exactly what was run.
+\end{itemize}
+
+Line-based baselines are rendered as their kept lines with nothing in between, so they pay no tokens for omission markers. If anything this favours them.
+
+\subsection{Metrics}
+
+\emph{Gold-function recall} (primary) is the share of gold functions that are kept in full, where a function counts only if every non-blank line of it survives. This is deliberately strict for methods that cut inside functions, so we also report \emph{gold-line recall}, the share of edited pre-fix lines that survive, which treats every method alike. The \emph{all-gold rate} is the share of issues with every gold function kept, since one lost function can make an issue unfixable. \emph{Signature recall} counts a function if at least its signature survives. \emph{Gold-token precision} is the share of output tokens that belong to gold functions. \emph{Parse rate} is the share of pruned files that \texttt{ast.parse} accepts, among files that parsed before pruning. We also check actual compression, which confirms that no method exceeded a budget in any run, and latency.
+
+\subsection{Statistics}
+
+All methods run on the same issues, so we compare them with a paired bootstrap over issues (10{,}000 resamples) and report 95\% percentile intervals and a two-sided $p$-value. The comparisons that test H1 and H2 were listed in the configuration file before any test run. Others are exploratory and described as such.
