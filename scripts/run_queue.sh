@@ -34,18 +34,19 @@ if [ -s results/runs/lite/oracle/longcodezip.jsonl ] || $PY scripts/smoke_extern
 else log "longcodezip full smoke FAILED"; fi
 log "EXTERNAL_DONE"
 
-$PY experiments/scaling.py --split lite > logs/scaling.log 2>&1; log "scaling gpu exit=$?"
-$PY experiments/scaling.py --split lite --device cpu --sample 20 --tag cpu > logs/scaling_cpu.log 2>&1; log "scaling cpu exit=$?"
-$PY experiments/error_analysis.py --split lite > logs/error_analysis.log 2>&1; log "error analysis exit=$?"
+[ -s results/scaling/lite.json ] || { $PY experiments/scaling.py --split lite > logs/scaling.log 2>&1; log "scaling gpu exit=$?"; }
+[ -s results/error_analysis/categories.json ] || { $PY experiments/error_analysis.py --split lite > logs/error_analysis.log 2>&1; log "error analysis exit=$?"; }
 ev --split lite --methods ast_ppl --settings oracle oracle_imports > logs/eval_lite_ppl.log 2>&1; log "lite ppl exit=$?"
-$PY experiments/downstream.py --split lite --n 100 --tag qwen7b_4bit > logs/downstream_7b.log 2>&1; log "downstream 7B exit=$?"
+[ -s results/downstream/qwen7b_4bit/summary.json ] || { $PY experiments/downstream.py --split lite --n 100 --tag qwen7b_4bit > logs/downstream_7b.log 2>&1; log "downstream 7B exit=$?"; }
 log "CORE_DONE"
-ev --split dev --methods ast_ppl --settings oracle oracle_imports > logs/eval_dev_ppl.log 2>&1; log "dev ppl exit=$?"
 for run in seed1:1:5 seed2:2:5 unfiltered:0:0; do
   IFS=: read name seed maxgold <<< "$run"
   $PY experiments/train_ranker.py --run-name $name --seed $seed --max-gold-functions $maxgold --epochs 2 --evals-per-epoch 3 --resume > logs/train_$name.log 2>&1; log "train $name exit=$?"
   ev --split dev --methods "ast_trained@$name" --settings oracle_imports > logs/eval_dev_$name.log 2>&1
   ev --split lite --methods "ast_trained@$name" --settings oracle_imports > logs/eval_lite_$name.log 2>&1; log "eval $name exit=$?"
 done
+log "SEEDS_DONE"
+# CPU latency last, with nothing else running, so the timings are clean.
+[ -s results/scaling/lite_cpu.json ] || { $PY experiments/scaling.py --split lite --device cpu --sample 10 --tag cpu > logs/scaling_cpu.log 2>&1; log "scaling cpu exit=$?"; }
 ev --split verified --methods swe_pruner ast_ppl --settings oracle_imports > logs/eval_verified_external.log 2>&1; log "verified swe_pruner and ppl exit=$?"
 log "QUEUE_DONE"

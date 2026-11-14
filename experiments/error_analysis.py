@@ -34,9 +34,9 @@ from astprune.select import DROP, FULL, SIG
 CATEGORIES = [
     "file not among candidates",
     "function too large for the budget",
-    "near miss (next in line or signature kept)",
-    "issue does not name the function",
-    "named in the issue but outranked",
+    "only its signature fit",
+    "outranked, issue does not name it",
+    "outranked, issue names it",
 ]
 
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]{2,}")
@@ -62,7 +62,11 @@ def categorise(case: dict) -> str:
         return CATEGORIES[0]
     if case["function_tokens"] > 0.5 * case["budget_tokens"]:
         return CATEGORIES[1]
-    if case["state"] == "signature" or case["rank"] <= case["rank_cutoff"] + 3:
+    # The selector walks nodes in score order and stops spending once the budget
+    # is used up, so a dropped function was outranked by what filled the budget.
+    # (Tiny nodes further down can still fill the last few tokens, so the rank of
+    # the last kept node says little and is not used here.)
+    if case["state"] == "signature":
         return CATEGORIES[2]
     if not case["mentions"]["function"]:
         return CATEGORIES[3]
@@ -127,17 +131,27 @@ def main() -> None:
     ap.add_argument("--setting", default="oracle_imports")
     ap.add_argument("--budget", type=float, default=0.25)
     ap.add_argument("--methods", nargs="+", default=["ast_trained", "ast_bm25"])
+    ap.add_argument("--recategorise", action="store_true",
+                    help="only re-apply the category rules to the case files that already exist")
     args = ap.parse_args()
 
-    registry = Registry(load_config())
     records = load_processed(args.split)
+    if args.recategorise:
+        registry = None
+    else:
+        registry = Registry(load_config())
     folder = PROJECT_ROOT / "results" / "error_analysis"
     folder.mkdir(parents=True, exist_ok=True)
     summary = {"split": args.split, "setting": args.setting, "budget": args.budget,
                "categories": CATEGORIES, "counts": {}, "gold_functions_total": sum(len(r["gold_functions"]) for r in records)}
     for name in args.methods:
-        cases = analyse(name, registry.method(name), records, args.setting, args.budget)
         path = folder / f"{args.split}_{args.setting}_r{args.budget:.2f}_{name}.jsonl"
+        if args.recategorise:
+            cases = [json.loads(line) for line in path.open()]
+            for case in cases:
+                case["category"] = categorise(case)
+        else:
+            cases = analyse(name, registry.method(name), records, args.setting, args.budget)
         with path.open("w") as fh:
             for case in cases:
                 fh.write(json.dumps(case) + "\n")
@@ -146,7 +160,36 @@ def main() -> None:
         print(f"{name}: {len(cases)} lost gold functions -> {path.name}")
         for category, n in counts.items():
             print(f"   {n:4d}  {category}")
-    (folder / "categories.json").write_text(json.dumps(summary, indent=2) + "\n")
+    name = "categories.json" if abs(args.budget - 0.25) < 1e-9 else f"categories_r{args.budget:.2f}.json"
+    (folder / name).write_text(json.dumps(summary, indent=2) + "\n")
+    write_tables(args, summary)
+
+
+def write_tables(args, summary: dict) -> None:
+    """Markdown tables for docs/error_analysis.md (filled in by scripts/fill_docs.py)."""
+    from astprune.display import label
+
+    tables = PROJECT_ROOT / "results" / "tables"
+    tables.mkdir(parents=True, exist_ok=True)
+    tag = f"{args.split}_r{args.budget:.2f}"
+    names = list(summary["counts"])
+    lines = [f"Lost gold functions by cause, {args.split}, gold files plus imports, {round(args.budget * 100)}% budget "
+             f"({summary['gold_functions_total']} gold functions in all).", "",
+             "| Cause | " + " | ".join(label(n) for n in names) + " |", "|---|" + "---|" * len(names)]
+    for c in CATEGORIES:
+        lines.append(f"| {c} | " + " | ".join(str(summary["counts"][n][c]) for n in names) + " |")
+    lines.append("| total | " + " | ".join(str(sum(summary["counts"][n].values())) for n in names) + " |")
+    (tables / f"{tag}_errors.md").write_text("\n".join(lines) + "\n")
+    for n in names:
+        path = PROJECT_ROOT / "results" / "error_analysis" / f"{args.split}_{args.setting}_r{args.budget:.2f}_{n}.jsonl"
+        rows = [json.loads(line) for line in path.open()]
+        out = [f"Every gold function {label(n)} lost, {args.split}, {round(args.budget * 100)}% budget.", "",
+               "| Issue | Function | Its tokens | Budget | Shown as | Score rank | Cause |", "|---|---|---|---|---|---|---|"]
+        for c in rows:
+            rank = f"{c['rank']} of {c['n_candidates']}" if c.get("rank") else "n/a"
+            out.append(f"| {c['instance_id']} | `{c['function']}` | {c['function_tokens']} | {c['budget_tokens']} | "
+                       f"{c['state']} | {rank} | {c['category']} |")
+        (tables / f"{tag}_error_cases_{n}.md").write_text("\n".join(out) + "\n")
 
 
 if __name__ == "__main__":

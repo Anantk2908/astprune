@@ -1,0 +1,13 @@
+{
+  "split": "lite",
+  "settings": [
+    "oracle"
+  ],
+  "methods": [
+    "longcodezip"
+  ],
+  "n_issues": 42,
+  "random_sample": 100,
+  "note": "stopped by the 3 hour cap after 42 of the 100 sampled issues; only issues with every budget finished are kept. The sample order is random, so these are a random subset of Lite.",
+  "finished": "2026-11-14 16:45:46"
+}

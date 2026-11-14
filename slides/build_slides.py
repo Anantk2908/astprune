@@ -402,25 +402,25 @@ def build() -> Deck:
         "Signature tier | costs little recall and tells the agent what else is there",
     ], 8.4, 1.9, 4.4, 4.6, size=16, gap=14)
 
-    # 12. third-party baselines (only when run)
-    ext = [m for m in ("swe_pruner", "longcodezip_rank", "longcodezip", "ast_ppl") if num.has("lite", "oracle", m)
-           or num.has("lite", MAIN, m)]
-    if ext:
-        s = deck.slide("Against released systems", "Evaluation",
-                       "State the conditions honestly: LongCodeZip ran with a 1.5B scorer instead of its 7B default, "
-                       "and its full mode on a 100-issue sample. Details are in docs/baselines.md.")
-        rows = []
-        for m in ext + ["ast_bm25", "ast_trained"]:
-            st = MAIN if num.has("lite", MAIN, m) else "oracle"
-            rows.append([LABELS[m], "gold + imports" if st == MAIN else "gold files", num.n("lite", st, m),
-                         r(m, "r0.10", setting=st), r(m, "r0.25", setting=st), r(m, "r0.50", setting=st),
-                         r(m, setting=st, metric="gold_line_recall")])
-        deck.table(s, ["Lite", "Files", "Issues", "Fn 10%", "Fn 25%", "Fn 50%", "Lines 25%"], rows, 0.7, 1.9, 11.9,
-                   col_widths=[4.2, 1.9, 1.0, 1.1, 1.1, 1.1, 1.3], size=14, highlight=(len(rows) - 1,))
-        deck.text(s, "Fn: gold-function recall. Lines: gold-line recall, the metric that suits line pruners. "
-                     "Compare rows only within the same file setting.", 0.7, 5.6, 11.9, 0.8, size=14, color=SECONDARY)
+    # 12. third-party baselines, from the same-issue table
+    ext_md = RESULTS / "tables" / "lite_external.md"
+    if ext_md.exists():
+        lines = [l for l in ext_md.read_text().splitlines() if l.startswith("| ") and "(ours)" not in l]
+        rows = [[c.strip() for c in l.strip("|").split("|")] for l in lines[1:]]
+        s = deck.slide("Against released systems, on the same issues", "Evaluation",
+                       "Each row compares a released system with our ranker on exactly the issues it ran on. "
+                       "LongCodeZip used a 1.5B scorer instead of 7B, on a 100-issue sample, because of the 8 GB GPU. "
+                       "SWE-Pruner finds edited lines as well as we do, but does not keep functions whole.")
+        deck.table(s, ["Lite, theirs / ours", "Files", "Issues", "Fn recall 10%", "Fn recall 25%",
+                       "Line recall 25%", "Parses", "s per file"],
+                   [[r[0], r[1].replace("Gold files + direct imports", "gold + imports").replace("Gold files only", "gold files"),
+                     r[2], r[3], r[4], r[7], r[8] + "%", r[9]] for r in rows],
+                   0.7, 1.9, 11.9, col_widths=[3.6, 1.7, 0.9, 1.5, 1.5, 1.6, 1.0, 1.0], size=14)
+        deck.text(s, "Fn recall: the whole function survives. Line recall: share of edited lines that survive, "
+                     "the metric that suits line pruners. Our views always parse.", 0.7, 5.3, 11.9, 0.8,
+                  size=14, color=SECONDARY)
     else:
-        deck.skipped.append("third-party baselines (no swe_pruner / longcodezip / ast_ppl runs in results/summary)")
+        deck.skipped.append("third-party baselines (results/tables/lite_external.md missing)")
 
     # 13. scaling and latency
     scaling_fig = FIGURES / "lite_scaling.png"
@@ -438,15 +438,18 @@ def build() -> Deck:
     cats = read_json(RESULTS / "error_analysis" / "categories.json")
     err_fig = FIGURES / "error_categories.png"
     if cats and err_fig.exists():
+        c_ours, c_bm25 = cats["counts"].get("ast_trained", {}), cats["counts"].get("ast_bm25", {})
+        unnamed = "outranked, issue does not name it"
         s = deck.slide("Where it still fails", "Evaluation",
-                       "The largest group is functions bigger than the whole budget. Those come back as a signature "
-                       "and the agent has to ask again with more room.")
+                       "Most misses are functions the issue never names. That is also where training helps most. "
+                       "Case studies are in docs/error_analysis.md.")
         deck.picture(s, err_fig, 0.5, 1.8, 7.6, 5.0)
         deck.bullets(s, [
-            "Function larger than the budget | it cannot fit, so it is shown as a signature",
-            "Issue names other code | the report talks about the symptom, the fix is elsewhere",
-            "Vague issue | little text to rank by",
-            "Case studies are in docs/error_analysis.md",
+            f"Lost at 25% | {sum(c_ours.values())} gold functions for ours, {sum(c_bm25.values())} for BM25",
+            f"Issue never names it | {c_ours.get(unnamed, 0)} for ours, {c_bm25.get(unnamed, 0)} for BM25. "
+            "The issue describes a symptom, the fix is elsewhere",
+            "Too large for the budget | rare at 25%. Often ranked first, shown as a signature",
+            "Case studies | docs/error_analysis.md",
         ], 8.3, 1.9, 4.5, 4.8, size=15, gap=12)
     else:
         deck.skipped.append("error analysis (results/error_analysis/categories.json or figure missing)")

@@ -5,24 +5,24 @@
   "categories": [
     "file not among candidates",
     "function too large for the budget",
-    "near miss (next in line or signature kept)",
-    "issue does not name the function",
-    "named in the issue but outranked"
+    "only its signature fit",
+    "outranked, issue does not name it",
+    "outranked, issue names it"
   ],
   "counts": {
     "ast_trained": {
       "file not among candidates": 0,
       "function too large for the budget": 2,
-      "near miss (next in line or signature kept)": 10,
-      "issue does not name the function": 6,
-      "named in the issue but outranked": 1
+      "only its signature fit": 2,
+      "outranked, issue does not name it": 12,
+      "outranked, issue names it": 3
     },
     "ast_bm25": {
       "file not among candidates": 0,
       "function too large for the budget": 2,
-      "near miss (next in line or signature kept)": 58,
-      "issue does not name the function": 18,
-      "named in the issue but outranked": 0
+      "only its signature fit": 14,
+      "outranked, issue does not name it": 53,
+      "outranked, issue names it": 9
     }
   },
   "gold_functions_total": 317

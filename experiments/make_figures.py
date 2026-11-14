@@ -101,7 +101,8 @@ def recall_vs_budget(split: str, settings: list[str], metric: str, ylabel: str, 
     drawn: dict[str, object] = {}
     for ax, setting in zip(axes, settings):
         rows = [r for r in tables[setting] if r["metric"] == metric and r["budget"].startswith("r")]
-        present = {r["method"] for r in rows}
+        top = max((int(r["n"]) for r in rows if r["n"]), default=0)
+        present = {r["method"] for r in rows if r["n"] and int(r["n"]) >= 0.9 * top}  # sampled runs are left out
         series = [(m, *REFERENCE[m], NEUTRAL) for m in REFERENCE if m in present]
         series += [(m, METHODS[m][0], METHODS[m][2], METHODS[m][1]) for m in wanted if m in present]
         ends: list[tuple[float, str]] = []

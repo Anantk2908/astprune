@@ -20,6 +20,7 @@ Gold-function recall with 95% bootstrap intervals and other metrics, in percent.
 | Chunk RAG (BM25) | 36.5 [30.9, 42.3] | 55.5 [49.7, 61.2] | 80.3 [75.5, 84.9] | 77.7 | 54.0 | 74.3 | 6.0 | 12.4 |
 | Chunk RAG (UniXcoder, zero-shot) | 22.4 [17.7, 27.4] | 46.8 [41.1, 52.5] | 69.8 [64.4, 75.0] | 69.6 | 44.9 | 65.3 | 5.1 | 13.1 |
 | Skeleton (Agentless-style) | 1.1 [0.0, 2.6] | 6.8 [4.0, 9.9] | 35.9 [30.3, 41.6] | 9.7 | 6.6 | 97.8 | 0.9 | 100.0 |
+| SWE-Pruner (released checkpoint) | 32.0 [26.6, 37.7] | 54.6 [48.7, 60.3] | 81.0 [76.3, 85.6] | 87.6 | 53.3 | 80.3 | 6.7 | 14.7 |
 | AST + random order | 9.3 [6.0, 12.8] | 20.7 [16.2, 25.3] | 44.5 [38.9, 50.1] | 21.1 | 18.2 | 23.2 | 1.2 | 100.0 |
 | AST + BM25 | 60.9 [55.2, 66.5] | 77.1 [72.2, 81.8] | 90.7 [87.2, 94.0] | 76.2 | 74.5 | 81.5 | 6.5 | 100.0 |
 | AST + UniXcoder, zero-shot | 46.6 [40.9, 52.4] | 64.0 [58.3, 69.5] | 83.5 [79.0, 87.6] | 66.2 | 61.7 | 68.8 | 4.8 | 100.0 |
@@ -35,6 +36,23 @@ What we take from this:
 - **The gap shrinks as the budget grows**, as we expected. With enough room almost any ranking keeps the right function.
 - **Whole functions beat lines and chunks on function recall.** On gold-line recall, which does not care about function boundaries, chunk retrieval with BM25 is about level with BM25 on AST nodes. So part of the advantage of AST nodes is that they keep functions intact, not that they find the edited lines more often. The chunk view parses as Python in about one case out of eight.
 - **Something we expected to help did not.** Fusing BM25 ranks with the trained ranker's ranks scores a little below the trained ranker alone.
+
+Against released systems, each on exactly the issues it ran on (recall cells are theirs / ours):
+
+<!-- table:lite_external -->
+Third-party baselines on lite, each next to our trained ranker on exactly the issues it ran on. Recall cells are theirs / ours, in percent. The difference is paired over the same issues, with a 95% bootstrap interval. Seconds per file include model scoring, on our laptop GPU.
+
+| Method | Files | Issues | Recall @10% | Recall @25% | Recall @50% | Ours minus them @25% (pp) | Line recall @25% | Parses @25% | Seconds per file |
+|---|---|---|---|---|---|---|---|---|---|
+| SWE-Pruner (released checkpoint) | Gold files only | 274 | 15.1 / 49.5 | 26.3 / 74.9 | 43.6 / 88.0 | +48.6 [+42.7, +54.6] | 73.0 / 69.3 | 0.0 | 6.81 |
+| LongCodeZip (coarse stage) | Gold files only | 95 | 32.2 / 50.7 | 52.5 / 71.1 | 69.1 / 86.8 | +18.6 [+7.0, +30.0] | 65.8 / 67.8 | 17.0 | 7.69 |
+| LongCodeZip (full) | Gold files only | 40 | 28.1 / 57.5 | 41.2 / 78.8 | 56.7 / 91.2 | +37.5 [+21.2, +53.8] | 58.1 / 74.7 | 4.8 | 40.79 |
+| AST + trained ranker (ours) | Gold files only | 274 |  |  |  |  |  | 100.0 | 0.16 |
+| SWE-Pruner (released checkpoint) | Gold files + direct imports | 274 | 32.0 / 81.8 | 54.6 / 94.3 | 81.0 / 98.0 | +39.8 [+33.9, +45.7] | 87.6 / 87.8 | 14.7 | 4.29 |
+| AST + trained ranker (ours) | Gold files + direct imports | 274 |  |  |  |  |  | 100.0 | 0.03 |
+<!-- /table -->
+
+SWE-Pruner prunes lines. It finds the edited lines about as well as our ranker (the line recall column), but it rarely keeps a whole function and its output almost never parses. LongCodeZip ran with a 1.5B scorer instead of the 7B one from its paper, and on a 100-issue sample because it is slow. What exactly was run, and why, is in [docs/baselines.md](docs/baselines.md).
 
 The same tables for SWE-bench Verified (500 issues), for gold files only, and for files retrieved with BM25 are in [results/tables/](results/tables/). The second test set agrees with the first:
 
@@ -177,7 +195,7 @@ data/README.md       where the data comes from and how to rebuild it
 - The evaluation asks whether the right code survives pruning. It does not run tests, so it does not show that an agent fixes more bugs with the pruned view. The small downstream check in [results/downstream/](results/downstream/) is a static proxy with a 7B model and should be read as that.
 - Issues whose fix only adds new functions have nothing to keep and are not in the recall numbers. The counts are in `results/data/`.
 - The ranker reads the first 256 tokens of a function and the first 512 tokens of an issue. A long function is judged by its head.
-- If a function is larger than the whole budget it cannot be kept. It comes back as a signature, and the caller has to ask again with a larger budget. This is the most common kind of miss, see [docs/error_analysis.md](docs/error_analysis.md).
+- If a function is larger than the whole budget it cannot be kept. It comes back as a signature, and the caller has to ask again with a larger budget. The most common miss is a different one though: a function the issue never names, ranked below what fits. See [docs/error_analysis.md](docs/error_analysis.md).
 - Results are for 12 well-known Python projects. Code that looks very different may behave differently.
 - Third-party baselines: what was run, with which model and on how many issues, is stated in [docs/baselines.md](docs/baselines.md).
 

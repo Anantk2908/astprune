@@ -61,9 +61,18 @@ def index(rows: list[dict]) -> dict:
     return {(r["method"], r["budget"], r["metric"]): r for r in rows}
 
 
+def full_split(rows: dict) -> set[str]:
+    """Methods that ran on (nearly) every issue. Runs on a sample go in the external table instead."""
+    ns = {m: int(r["n"]) for (m, b, k), r in rows.items() if k == "gold_fn_recall" and b == "r0.25" and r["n"]}
+    top = max(ns.values(), default=0)
+    return {m for m, n in ns.items() if n >= 0.9 * top}
+
+
 def main_table(split: str, setting: str, methods: list[str] | None) -> None:
     rows = index(load(split, setting))
-    present = sorted({m for m, _, _ in rows if m in LABELS and (methods is None or m in methods)}, key=sort_key)
+    full = full_split(rows)
+    present = sorted({m for m, _, _ in rows if m in LABELS and m in full and (methods is None or m in methods)},
+                     key=sort_key)
     if not present:
         return
     n = max(int(r["n"]) for (m, b, k), r in rows.items() if k == "gold_fn_recall" and b == "r0.25")
@@ -83,8 +92,9 @@ def main_table(split: str, setting: str, methods: list[str] | None) -> None:
 def settings_table(split: str, methods: list[str] | None) -> None:
     settings = [s for s in SETTING_LABELS if load(split, s)]
     tables = {s: index(load(split, s)) for s in settings}
-    present = sorted({m for t in tables.values() for m, _, _ in t if m in LABELS and (methods is None or m in methods)},
-                     key=sort_key)
+    sampled = {m for t in tables.values() for m, _, _ in t} - set().union(*(full_split(t) for t in tables.values()))
+    present = sorted({m for t in tables.values() for m, _, _ in t
+                      if m in LABELS and m not in sampled and (methods is None or m in methods)}, key=sort_key)
     if not present:
         return
     header = ["Method"] + [SETTING_LABELS[s] for s in settings]
@@ -122,6 +132,63 @@ def ablation_table(split: str, setting: str) -> None:
           f"Selector ablations (%), {split}, {SETTING_LABELS[setting].lower()}.")
 
 
+EXTERNAL = ["swe_pruner", "longcodezip_rank", "longcodezip", "ast_ppl"]
+
+
+def external_table(split: str) -> None:
+    """Third-party baselines next to our ranker, on exactly the issues each baseline ran on."""
+    from astprune.evaluation import load_runs
+    from astprune.registry import load_config
+    from astprune.stats import paired_diff
+
+    boot = load_config(None)["bootstrap"]
+    kw = dict(n_resamples=boot["resamples"], seed=boot["seed"], level=boot["level"])
+    header = ["Method", "Files", "Issues", "Recall @10%", "Recall @25%", "Recall @50%",
+              "Ours minus them @25% (pp)", "Line recall @25%", "Parses @25%", "Seconds per file"]
+    body = []
+    for setting in ("oracle", "oracle_imports"):
+        runs = load_runs(split, setting)
+        if "ast_trained" not in runs:
+            continue
+        ours = {(r["budget"], r["instance_id"]): r for r in runs["ast_trained"]}
+        for m in EXTERNAL:
+            if m not in runs:
+                continue
+            theirs = {(r["budget"], r["instance_id"]): r for r in runs[m]}
+
+            def pair(budget, metric):
+                ids = sorted(i for b, i in theirs if b == budget and (budget, i) in ours
+                             and theirs[(b, i)][metric] is not None and ours[(b, i)][metric] is not None
+                             and (metric != "gold_fn_recall" or theirs[(b, i)]["n_gold_functions"] > 0))
+                return ([theirs[(budget, i)][metric] for i in ids], [ours[(budget, i)][metric] for i in ids])
+
+            row = [label(m), SETTING_LABELS[setting]]
+            a, _ = pair("r0.25", "gold_fn_recall")
+            row.append(str(len(a)))
+            for budget in ("r0.10", "r0.25", "r0.50"):
+                a, b = pair(budget, "gold_fn_recall")
+                row.append(f"{100 * sum(a) / len(a):.1f} / {100 * sum(b) / len(b):.1f}" if a else "n/a")
+            a, b = pair("r0.25", "gold_fn_recall")
+            d = paired_diff(b, a, **kw)
+            row.append(f"{100 * d['diff']:+.1f} [{100 * d['lo']:+.1f}, {100 * d['hi']:+.1f}]")
+            a, b = pair("r0.25", "gold_line_recall")
+            row.append(f"{100 * sum(a) / len(a):.1f} / {100 * sum(b) / len(b):.1f}" if a else "n/a")
+            rows25 = [r for (bud, _), r in theirs.items() if bud == "r0.25"]
+            checked = sum(r["parse_checked"] for r in rows25)
+            row.append(f"{100 * sum(r['parse_ok'] for r in rows25) / checked:.1f}" if checked else "n/a")
+            row.append(f"{sum((r['prep_ms'] + r['prune_ms']) / r['n_files'] for r in rows25) / len(rows25) / 1000:.2f}")
+            body.append(row)
+        rows25 = [r for (bud, _), r in ours.items() if bud == "r0.25"]
+        body.append([label("ast_trained"), SETTING_LABELS[setting], str(sum(r["n_gold_functions"] > 0 for r in rows25)),
+                     "", "", "", "", "", "100.0" if all(r["parse_ok"] == r["parse_checked"] for r in rows25) else "",
+                     f"{sum((r['prep_ms'] + r['prune_ms']) / r['n_files'] for r in rows25) / len(rows25) / 1000:.2f}"])
+    if len(body) > 2:
+        write(f"{split}_external", header, body,
+              f"Third-party baselines on {split}, each next to our trained ranker on exactly the issues it ran on. "
+              "Recall cells are theirs / ours, in percent. The difference is paired over the same issues, "
+              "with a 95% bootstrap interval. Seconds per file include model scoring, on our laptop GPU.")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--split", default="lite")
@@ -133,6 +200,7 @@ def main() -> None:
     paired_table(args.split, "oracle_imports")
     paired_table(args.split, "bm25_5")
     ablation_table(args.split, "oracle_imports")
+    external_table(args.split)
 
 
 if __name__ == "__main__":
