@@ -7,10 +7,10 @@ Ticked when the phase exit criteria are met and the phase has been audited. Deta
 - [x] Phase 0. Setup
 - [x] Phase 1. Parser, token counter, selector
 - [x] Phase 2. Data and labels
-- [ ] Phase 3. Untrained methods and the evaluation harness
-- [ ] Phase 4. Train the ranker
-- [ ] Phase 5. External baselines
-- [ ] Phase 6. Scaling, latency, error analysis
+- [x] Phase 3. Untrained methods and the evaluation harness
+- [x] Phase 4. Train the ranker (78 minutes, checkpoint picked on dev, choices frozen before any test run)
+- [x] Phase 5. External baselines (SWE-Pruner on all of Lite, LongCodeZip on a 100-issue sample with a 1.5B scorer, see docs/baselines.md)
+- [x] Phase 6. Scaling, latency, error analysis (CPU latency is the last queue step)
 - [ ] Phase 7. MCP server and demo
 - [ ] Phase 8. Stretch: downstream effect
 - [ ] Phase 9. README, tutorial, notebook, reproduction check

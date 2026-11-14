@@ -105,3 +105,11 @@ Still to write once those results exist:
 Finding to report as it is: SWE-Pruner prunes lines, so on gold-function recall it is far below our method (54.6 against 94.3 at the 25% budget, gold files plus imports), but on gold-line recall it is level with ours in that setting (87.6 against 87.8) and better with gold files only at the 10% budget (58.9 against 45.9). Its views parse as Python in under 25% of cases.
 
 Left for the team: put the 484 MB checkpoint on a release page and fill the link in the README, add the GitHub remote and push, record the backup demo video.
+
+## Nov 14, evening: after the third restart
+
+- The laptop's GPU driver crashed around 12:07 (a sticky CUDA error, the same time as the screen glitches), which also killed the CPU latency run. After the reboot the queue was trimmed and restarted. Dev perplexity runs were dropped, since nothing is tuned on them.
+- LongCodeZip full mode hit its 3 hour cap after 42 of its 100 sampled issues. Those 42 (40 with a gold function) are kept as the run, with a manifest saying so. Its coarse stage finished all 100.
+- New table `results/tables/lite_external.md` compares each third-party system with our ranker on exactly the issues it ran on. Sampled runs are kept out of the main tables and figures, since their averages are over different issues.
+- Error analysis categories were rewritten. The first version had a "near miss" pile based on the rank of the last kept node, but tiny low-ranked nodes fill the last few tokens of the budget, so that rank says little. The rules are now: too large, only the signature fit, outranked with or without the issue naming the function. This also showed the README was wrong to call "too large for the budget" the most common miss. It is rare at 25%. Fixed.
+- Written: `docs/baselines.md`, `docs/error_analysis.md`, `report/sections/06_analysis.tex`. Slides now have 17 slides.
