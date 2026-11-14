@@ -1,0 +1,23 @@
+{
+  "runs": 20,
+  "succeeded": 20,
+  "ranking": "trained",
+  "device": "cpu",
+  "server_ready_seconds": {
+    "median": 9.342,
+    "p90": 10.446,
+    "max": 13.841
+  },
+  "first_call_seconds": {
+    "median": 17.568,
+    "p90": 19.563,
+    "max": 19.949
+  },
+  "repeat_call_seconds": {
+    "median": 0.031,
+    "p90": 0.041,
+    "max": 0.045
+  },
+  "what_a_run_checks": "start server, list tools, prune a sample, prune it again, send a bad request and get an error result, prune once more",
+  "failures": []
+}

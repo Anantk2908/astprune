@@ -8,7 +8,7 @@ From a fresh clone to a pruned view of your own files, then to rerunning the exp
 |---|---|---|
 | Python 3.11+ and git | everything | |
 | About 3 GB of disk | install | mostly PyTorch |
-| A CUDA GPU | training, fast evaluation | optional for the demo. The demo runs on CPU with BM25 ranking, or with the trained ranker at a few seconds per call |
+| A CUDA GPU | training, fast evaluation | optional for the demo. The demo runs on CPU with BM25 ranking, or with the trained ranker. On CPU the server took about 9 s to start and the first request about 18 s in our check, and a repeated request on the same files about 30 ms (`results/demo_reliability.json`) |
 | The trained checkpoint (484 MB) | trained ranking | see section 3. Without it the server uses BM25 and tells you |
 | 2 GB more disk and network | rebuilding the evaluation data | 15 GB if you also rebuild the training data |
 | Money | nothing | no paid API is called anywhere |

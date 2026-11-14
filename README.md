@@ -106,7 +106,7 @@ Run it on your own code:
 python demo/app.py --root ~/code/myrepo --files pkg/a.py pkg/b.py --issue "crash when x is None"
 ```
 
-The demo script is an MCP client. It starts `python -m astprune.server` as a subprocess and talks to it over MCP, the same way an agent would. A full walk-through with expected output and troubleshooting is in [docs/tutorial.md](docs/tutorial.md).
+The demo script is an MCP client. It starts `python -m astprune.server` as a subprocess and talks to it over MCP, the same way an agent would. We ran the whole demo path 20 times on CPU (start the server, prune, prune again, send a bad request, prune once more) and all 20 runs worked, see `results/demo_reliability.json`. A full walk-through with expected output and troubleshooting is in [docs/tutorial.md](docs/tutorial.md).
 
 ### The trained checkpoint
 
