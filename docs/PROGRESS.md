@@ -21,7 +21,7 @@ Numbers here are copied from files under `results/`. If they ever disagree, the 
 
 - Datasets from Hugging Face. SWE-bench train has 35 repositories (the proposal said about 37). SWE-Gym has 11.
 - Repo overlap is checked in code by `experiments/build_train_examples.py`, which writes `results/data/leakage_check.json` and refuses to continue on any overlap. Train vs test, train vs dev and dev vs test share no repository. SWE-Gym and SWE-bench train share pandas and conan, duplicates are dropped when examples are built. Lite and Verified share 93 issues, which is expected: both are subsets of the SWE-bench test set.
-- Bare clones with `--filter=blob:limit=2m`. The 12 test repos took about 2 minutes, all 53 repos take about 12 GB. One training repo (JohnSnowLabs/spark-nlp, 3 issues) did not finish cloning and was skipped.
+- Bare clones with `--filter=blob:limit=2m`. The 12 test repos took about 2 minutes, all 53 repos take about 15 GB. One training repo (JohnSnowLabs/spark-nlp, 3 issues) did not finish cloning and was skipped.
 - Problem found: some patches have hunk line numbers that are off against `base_commit` (git apply tolerates offsets). In Lite that is 8 patches. 4 were rejected by our check, and the other 4 would have matched at the wrong place and been mislabelled without anyone noticing (for example pytest-5103 would have marked `visit_BinOp` where the fix is in `visit_Call_35`). Verified has 11 such patches. Added hunk realignment, the same search `patch` does. All 300 Lite and 500 Verified issues now label cleanly.
 - Problem found: pydicom ships data dictionaries of up to 2.7 MB as `.py` files and BM25 retrieved them for 54 dev issues, which made evaluation crawl. Files over 400,000 characters are no longer offered as retrieved or imported candidates. No gold file in dev, Lite or Verified is that large.
 
@@ -50,3 +50,33 @@ Run by an opus subagent, read-only. Result: FAIL with 1 blocker, since fixed. Wh
 | Stats lacked nodes per file, leakage file was not committed, no `requirements.txt`, no checkboxes in the plan, stale BM25 numbers, an em-dash in the plan | should-fix / nit | All added or corrected |
 
 Everything downstream of labels and parsing (the dev evaluation and the training examples) was thrown away and rebuilt after these fixes.
+
+## Phase 3. Untrained methods and the evaluation harness (Nov 13)
+
+- Methods: line window, chunk RAG (BM25 and zero-shot UniXcoder), Agentless-style skeleton, AST + random, AST + BM25, AST + zero-shot UniXcoder. Harness in `src/astprune/evaluation.py`, tables from `experiments/summarize.py` and `make_tables.py`.
+- Problem found: with several worker processes each holding the encoder, the 8 GB card overflowed into shared memory and everything slowed down about tenfold. Encoder methods now run in one process, CPU methods run in parallel without the GPU.
+- Problem found: the skeleton baseline scored 86% at the 50% budget on dev. Candidate files were listed gold files first, and the skeleton fills bodies in file order, so it was being handed the answer. Oracle settings now list files alphabetically. The skeleton dropped to 40%.
+- Deviation from the plan: the plan asked for a first Lite figure in this phase. No test-set run was made until the choices below were frozen.
+- Dev results are in `results/tables/dev_*.md`.
+
+## Phase 4. Training (Nov 13)
+
+- 17,325 examples from 44 repositories (SWE-bench train 16,840 labelled issues, SWE-Gym 2,353, 75 duplicates dropped, issues without a function or class positive dropped). 14,534 after dropping patches that touch more than 5 functions. At most 1,500 issues per repository per epoch, so pandas does not dominate.
+- UniXcoder-base, InfoNCE, temperature 0.05, 8 issues per batch with 1 positive, 8 same-file negatives (half picked by BM25) and 3 import negatives each, lr 2e-5, 2 epochs, mixed precision.
+- Problem found: this batch needs 12 GB without gradient checkpointing and 3.7 GB with it. Enabled.
+- Problem found: a laptop restart killed the first run. Training now saves its full state at every dev check and resumes with `--resume`.
+- Run `main`: 78 minutes on the RTX 4060. Dev recall (gold files + imports) at 10% / 25% budget went from 26.2 / 48.5 before training to 60.1 / 79.1 at step 2,700, the best check. Log in `results/training/main.json`.
+
+## Choices frozen on dev before any test run (Nov 13)
+
+Everything below was decided from `results/tables/dev_*.md`. The commit that adds this section is the last one before the first run on Lite or Verified.
+
+| Choice | Decision | Dev evidence (recall at 10% / 25%, gold files + imports) |
+|---|---|---|
+| Checkpoint | run `main`, step 2,700 | best mean dev recall of 7 checks |
+| Scorer shipped in the server | trained ranker alone | 60.1 / 79.1, against 57.0 / 74.3 for rank fusion with BM25 |
+| Budget | pooled over candidate files | 60.1 / 79.1, against 34.8 / 53.4 when split per file |
+| Signature tier | on, nothing reserved | 60.1 / 79.1 with it, 60.2 / 79.3 without, and signature recall 66.9 against 60.2 at 10% |
+| Order | by score | 60.1 / 79.1, against 59.4 / 78.5 for probability per token |
+
+The rank fusion with BM25 was our own suggested improvement to the proposal. It did not help and is reported as a negative result.

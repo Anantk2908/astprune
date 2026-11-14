@@ -53,6 +53,10 @@ class Registry:
             models = self.config["models"]
             if key == "unixcoder":
                 source = models["base_encoder"]
+            elif key.startswith("trained@"):  # another training run, e.g. trained@seed1
+                source = str(PROJECT_ROOT / "checkpoints" / "ranker" / key.split("@", 1)[1] / "best")
+                if not Path(source).exists():
+                    raise FileNotFoundError(f"no checkpoint at {source}")
             elif key == "trained":
                 source = models["trained_checkpoint"]
                 if not Path(source).is_absolute():
@@ -73,7 +77,7 @@ class Registry:
                 base = BM25NodeScorer()
             elif key == "random":
                 base = RandomScorer()
-            elif key in ("unixcoder", "trained"):
+            elif key in ("unixcoder", "trained") or key.startswith("trained@"):
                 from .scorers.encoder import EncoderNodeScorer
 
                 base = EncoderNodeScorer(self.encoder(key), name=key)

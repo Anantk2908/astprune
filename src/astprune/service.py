@@ -71,10 +71,10 @@ class PruningService:
                 encoder = Encoder(str(self.checkpoint), device=self.device, name="trained")
                 trained = EncoderNodeScorer(encoder, name="trained")
                 self.device_name = encoder.device
-                if wanted == "trained":
-                    scorer, self.scorer_name = trained, "trained"
-                else:  # auto and hybrid: fuse lexical and learned ranks
+                if wanted == "hybrid":  # rank fusion with BM25, kept as an option
                     scorer, self.scorer_name = HybridScorer([bm25, trained], name="hybrid"), "hybrid"
+                else:  # auto and trained. On the dev split the trained ranker alone beat the fusion.
+                    scorer, self.scorer_name = trained, "trained"
             except Exception as err:  # noqa: BLE001 - any load failure must leave a working service
                 self.startup_notes.append(
                     f"Trained ranker not available ({type(err).__name__}: {err}). Using BM25 ranking."

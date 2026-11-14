@@ -27,7 +27,7 @@ python experiments/build_train_examples.py          # only needed for training
 
 What you get:
 
-- `data/repos/` bare git clones, about 12 GB for all splits (about 2 GB for the three evaluation splits). Blobs over 2 MB are left on the server.
+- `data/repos/` bare git clones, about 15 GB for all splits (about 2 GB for the three evaluation splits). Blobs over 2 MB are left on the server.
 - `data/cache/hf/` the Hugging Face cache.
 - `data/processed/<split>.jsonl` one record per issue: issue text, gold functions and gold lines, candidate files.
 - `data/processed/train_examples/` tokenized training examples.
@@ -43,6 +43,6 @@ For each issue we read the files the gold patch touches as they were at `base_co
 - `hints_text` is never read. It contains comments written after the issue was filed.
 - A few patches only apply to `base_commit` with a line offset. Hunks are moved to where their context matches, the same way `patch` does it. Issues where a hunk matches nowhere are skipped and counted.
 - Issues whose patch touches no Python file are skipped (2,117 in SWE-bench train, mostly docs and Cython).
-- One training repository (JohnSnowLabs/spark-nlp, 3 issues) did not finish cloning in our run and was skipped.
+- Cloning can stall on a very large repository (JohnSnowLabs/spark-nlp did once for us). Rerun the build command, finished clones are reused.
 - Files over 400,000 characters are never offered as retrieved or imported candidates. These are data tables shipped as `.py` files, for example pydicom's DICOM dictionaries. No gold file in dev, Lite or Verified is that large.
 - Test files are excluded from BM25 file retrieval. Gold patches never touch them, because SWE-bench keeps test changes in a separate field.

@@ -1,0 +1,15 @@
+\begin{tabular}{lrrrrr}
+\toprule
+Method & Gold files only & Gold files + direct imports & BM25 top-5 files & BM25 top-10 files & BM25 top-20 files \\
+\midrule
+Line window & 18.5 & 19.0 & 14.9 & 16.7 & 18.5 \\
+Chunk RAG (BM25) & 18.8 & 39.5 & 28.3 & 36.5 & 47.5 \\
+Chunk RAG (UniXcoder, zero-shot) & 14.8 & 21.0 & 16.8 & 20.4 & 25.0 \\
+Skeleton (Agentless-style) & 18.7 & 10.9 & 29.2 & 39.6 & 52.2 \\
+AST + random order & 23.0 & 23.4 & 15.9 & 19.5 & 22.0 \\
+AST + BM25 & 38.8 & 60.8 & 45.8 & 55.5 & 64.8 \\
+AST + UniXcoder, zero-shot & 34.1 & 48.4 & 36.9 & 46.4 & 52.3 \\
+\textbf{AST + trained ranker (ours)} & \textbf{57.6} & \textbf{79.1} & \textbf{60.4} & \textbf{72.0} & \textbf{81.4} \\
+AST + trained ranker + BM25 (ours) & 53.8 & 74.3 & 58.0 & 70.1 & 79.7 \\
+\bottomrule
+\end{tabular}
