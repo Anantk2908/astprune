@@ -62,6 +62,10 @@ comparisons:
     - [ast_trained, ast_bm25]
     - [ast_hybrid, ast_bm25]
     - [ast_trained, ast_ppl]
+  external:
+    - [ast_trained, swe_pruner]
+    - [ast_trained, longcodezip_rank]
+    - [ast_trained, longcodezip]
 
 bootstrap:
   resamples: 10000

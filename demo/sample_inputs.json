@@ -1,0 +1,50 @@
+[
+  {
+    "id": "psf__requests-1963",
+    "title": "`Session.resolve_redirects` copies the original request for all subsequent requests, can c (clear case)",
+    "source": "SWE-bench lite, psf/requests at 110048f983",
+    "issue": "`Session.resolve_redirects` copies the original request for all subsequent requests, can cause incorrect method selection\nConsider the following redirection chain:\n\n```\nPOST /do_something HTTP/1.1\nHost: server.example.com\n...\n\nHTTP/1.1 303 See Other\nLocation: /new_thing_1513\n\nGET /new_thing_1513\nHost: server.example.com\n...\n\nHTTP/1.1 307 Temporary Redirect\nLocation: //failover.example.com/new_thing_1513\n```\n\nThe intermediate 303 See Other has caused the POST to be converted to\na GET.  The subsequent 307 should preserve the GET.  However, because\n`Session.resolve_redirects` starts each iteration by copying the _original_\nrequest object, Requests will issue a POST!\n\n",
+    "root": "sample_repo/psf__requests-1963",
+    "files": [
+      "requests/sessions.py",
+      "requests/compat.py",
+      "requests/cookies.py",
+      "requests/models.py"
+    ],
+    "gold": [
+      "requests/sessions.py::SessionRedirectMixin.resolve_redirects"
+    ]
+  },
+  {
+    "id": "django__django-13658",
+    "title": "ManagementUtility instantiates CommandParser without passing already-computed prog argumen (at a 10% budget the function is too big to fit)",
+    "source": "SWE-bench lite, django/django at 0773837e15",
+    "issue": "ManagementUtility instantiates CommandParser without passing already-computed prog argument\nDescription\n\t\nManagementUtility \u200bgoes to the trouble to parse the program name from the argv it's passed rather than from sys.argv: \n\tdef __init__(self, argv=None):\n\t\tself.argv = argv or sys.argv[:]\n\t\tself.prog_name = os.path.basename(self.argv[0])\n\t\tif self.prog_name == '__main__.py':\n\t\t\tself.prog_name = 'python -m django'\nBut then when it needs to parse --pythonpath and --settings, it \u200buses the program name from sys.argv: \n\t\tparser = CommandParser(usage='%(prog)s subcommand [options] [args]', add_help=False, allow_abbrev=False)\nAbove \"%(prog)s\" \u200brefers to sys.argv[0]. Instead, it should refer to self.prog_name. This can fixed as follows:\n\t\tparser = CommandParser(\n\t\t\tprog=self.prog_name,\n\t\t\tusage='%(prog)s subcommand [options] [args]',\n\t\t\tadd_help=False,\n\t\t\tallow_abbrev=False)\nI'm aware that execute_from_command_line is a private API, but it'd be really convenient for me if it worked properly in my weird embedded environment where sys.argv[0] is \u200bincorrectly None. If passing my own argv to execute_from_command_line avoided all the ensuing exceptions, I wouldn't have to modify sys.argv[0] globally as I'm doing in the meantime.\n",
+    "root": "sample_repo/django__django-13658",
+    "files": [
+      "django/core/management/__init__.py",
+      "django/contrib/gis/geos/collections.py",
+      "django/__init__.py",
+      "django/apps/__init__.py"
+    ],
+    "gold": [
+      "django/core/management/__init__.py::ManagementUtility.execute"
+    ]
+  },
+  {
+    "id": "sympy__sympy-13146",
+    "title": "Exponent doesn't fully simplify (the issue never names the function)",
+    "source": "SWE-bench lite, sympy/sympy at b678d8103e",
+    "issue": "Exponent doesn't fully simplify\nSay I have code like this:\n\n```\nimport sympy\nfrom sympy import *\nx=Symbol('x')\nexpr1 = S(1)/2*x**2.5\nexpr2 = S(1)*x**(S(5)/2)/2\nres = expr1-expr2\nres= simplify(res.evalf(5))\nprint res\n```\n\nThe output is\n`-0.5*x**2.5 + 0.5*x**2.5`\nHow do I simplify it to 0?\n\n",
+    "root": "sample_repo/sympy__sympy-13146",
+    "files": [
+      "sympy/core/operations.py",
+      "sympy/core/sympify.py",
+      "sympy/core/basic.py",
+      "sympy/core/cache.py"
+    ],
+    "gold": [
+      "sympy/core/operations.py::AssocOp._eval_evalf"
+    ]
+  }
+]

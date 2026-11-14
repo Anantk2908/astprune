@@ -39,15 +39,19 @@ from astprune.types import PrunedFile
 
 DEFAULT_MODEL = "Qwen/Qwen2.5-Coder-7B-Instruct"
 SYSTEM_PROMPT = (
-    "You are a careful software engineer fixing a bug in a Python repository. "
-    "You are given the issue and code from the repository. Parts of the code may have been left out "
-    "and are marked with comments such as '# ... 40 lines omitted' or a body of '...'.\n"
-    "Reply with one or more edits in exactly this format and nothing else:\n\n"
-    "path/to/file.py\n<<<<<<< SEARCH\nlines copied exactly from the code you were shown\n=======\n"
-    "the lines that should replace them\n>>>>>>> REPLACE\n\n"
-    "Only edit code you can see. Keep each edit small."
+    "You fix bugs in Python repositories. You are given an issue and code from the repository. "
+    "Some code has been left out. Left-out parts are marked with a comment such as "
+    "'# ... 40 lines omitted' or with a function body of '...'."
 )
-USER_TEMPLATE = "Issue:\n{issue}\n\nCode:\n{context}\n\nWrite the edits that fix the issue."
+# The format is described after the code, next to where the answer starts. An
+# example edit in the prompt gets copied word for word by small models.
+USER_TEMPLATE = (
+    "Issue:\n{issue}\n\nCode:\n{context}\n\n"
+    "Write the edits that fix this issue. Use this format for each edit and write nothing else:\n\n"
+    "<path of the file>\n<<<<<<< SEARCH\n<a few lines copied exactly from the code above>\n=======\n"
+    "<the lines that should replace them>\n>>>>>>> REPLACE\n\n"
+    "Only edit code that is shown above."
+)
 
 _BLOCK = re.compile(r"<<<<<<< SEARCH\n(.*?)\n?=======\n(.*?)\n?>>>>>>> REPLACE", re.S)
 _DEF = re.compile(r"^\s*(?:async\s+)?(?:def|class)\s+([A-Za-z_]\w*)", re.M)
@@ -170,7 +174,7 @@ def load_generator(model_name: str, four_bit: bool):
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    kwargs: dict = {"torch_dtype": torch.float16}
+    kwargs: dict = {"dtype": torch.float16}
     if four_bit:
         from transformers import BitsAndBytesConfig
 

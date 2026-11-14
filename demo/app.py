@@ -174,11 +174,11 @@ def main() -> int:
         return 130
     except Exception as err:  # noqa: BLE001 - the demo must end with a readable message, not a traceback
         root = err.exceptions[0] if isinstance(err, BaseExceptionGroup) and err.exceptions else err
-        console.print(f"[red]Could not talk to the MCP server:[/red] {type(root).__name__}: {root}")
+        console.print(f"[red]Could not talk to the MCP server:[/red] {type(root).__name__}: {root}", soft_wrap=True)
         console.print("Check that the package is installed in this environment: pip install -e .")
         return 1
     if data is None:
-        console.print(f"[red]The server refused the request:[/red] {error}")
+        console.print(f"[red]The server refused the request:[/red] {error}", soft_wrap=True)
         return 2
     if args.json:
         print(json.dumps(data, indent=2))

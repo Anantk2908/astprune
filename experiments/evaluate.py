@@ -33,6 +33,8 @@ def main() -> None:
     ap.add_argument("--settings", nargs="+", default=None, choices=SETTINGS)
     ap.add_argument("--config", default=None)
     ap.add_argument("--limit", type=int, default=0, help="only the first N issues (smoke test)")
+    ap.add_argument("--sample", type=int, default=0,
+                    help="run on a fixed random sample of N issues (seed 0), for methods too slow for the full split")
     ap.add_argument("--force", action="store_true", help="redo runs that already exist")
     ap.add_argument("--device", default=None, help="cuda or cpu (default: cuda if available)")
     ap.add_argument("--workers", type=int, default=1,
@@ -48,6 +50,11 @@ def main() -> None:
     records = load_processed(args.split)
     if args.limit:
         records = records[: args.limit]
+    if args.sample:
+        import random
+
+        records = sorted(records, key=lambda r: r["instance_id"])
+        records = random.Random(0).sample(records, min(args.sample, len(records)))
     split = args.split if not args.limit else f"{args.split}_limit{args.limit}"
 
     print(f"{split}: {len(records)} issues, settings={settings}, methods={names}", flush=True)
@@ -62,6 +69,7 @@ def main() -> None:
 
     manifest = {
         "split": split, "settings": settings, "methods": names, "n_issues": len(records),
+        "random_sample": args.sample or None,
         "config": config, "seconds": round(time.time() - started, 1),
         "python": platform.python_version(), "torch": torch.__version__,
         "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,

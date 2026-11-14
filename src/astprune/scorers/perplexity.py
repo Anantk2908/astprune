@@ -36,7 +36,7 @@ class PerplexityNodeScorer:
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         dtype = torch.float16 if self.device == "cuda" else torch.float32
-        self.model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=dtype).to(self.device).eval()
+        self.model = AutoModelForCausalLM.from_pretrained(model_name, dtype=dtype).to(self.device).eval()
         self.n_parameters = sum(p.numel() for p in self.model.parameters())
         self.max_query_tokens = max_query_tokens
         self.max_node_tokens = max_node_tokens
@@ -69,13 +69,15 @@ class PerplexityNodeScorer:
                 mask[r, : len(seq)] = 1
                 spans.append((len(seq) - len(query_ids), len(seq)))
             ids, mask = ids.to(self.device), mask.to(self.device)
-            logits = self.model(input_ids=ids, attention_mask=mask).logits.float()
-            token_loss = torch.nn.functional.cross_entropy(
-                logits[:, :-1].reshape(-1, logits.size(-1)), ids[:, 1:].reshape(-1), reduction="none"
-            ).view(len(rows), width - 1)
+            # Run the transformer body only, then apply the output layer just at
+            # the query positions. Full-vocabulary logits for every token of
+            # every row would need tens of GB.
+            hidden = self.model.get_decoder()(input_ids=ids, attention_mask=mask).last_hidden_state
+            head = self.model.get_output_embeddings()
             for r, i in enumerate(rows):
-                lo, hi = spans[r]  # query tokens sit at positions lo..hi-1, predicted at lo-1..hi-2
-                losses[i] = token_loss[r, lo - 1 : hi - 1].mean().item()
+                lo, hi = spans[r]  # query tokens sit at lo..hi-1 and are predicted from lo-1..hi-2
+                logits = head(hidden[r, lo - 1 : hi - 1]).float()
+                losses[i] = torch.nn.functional.cross_entropy(logits, ids[r, lo:hi]).item()
             start += size
         return losses
 

@@ -57,7 +57,12 @@ def _load(model_name: str):
         logger.remove()  # the library logs every step at debug level
     except ImportError:
         pass
-    return LongCodeZip(model_name=model_name)
+    import torch
+
+    if torch.cuda.is_available():
+        return LongCodeZip(model_name=model_name)
+    # CPU fallback, only sensible for smoke tests.
+    return LongCodeZip(model_name=model_name, device_map="cpu", model_config={"torch_dtype": torch.float32})
 
 
 def locate_chunks(pf: ParsedFile, chunks: list[str]) -> list[tuple[int, int] | None]:

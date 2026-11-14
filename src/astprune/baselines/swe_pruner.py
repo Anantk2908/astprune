@@ -53,8 +53,35 @@ def _load(checkpoint: Path):
         import flash_attn  # noqa: F401
     except ImportError:
         swepruner_module.TokenScorer = functools.partial(TokenScorer, attn_implementation="sdpa")
-    model = prune_wrapper.SwePrunerForCodePruning.from_pretrained(str(checkpoint))
+
+    class Compat(prune_wrapper.SwePrunerForCodePruning):
+        """The released class skips ``post_init`` when loading, which newer
+        transformers versions need for their bookkeeping. Its own weight
+        initialiser is a no-op, so calling it changes no weights."""
+
+        def __init__(self, config):
+            super().__init__(config)
+            if not hasattr(self, "all_tied_weights_keys"):
+                self.post_init()
+
+    model = Compat.from_pretrained(str(checkpoint))
     return model, prune_wrapper
+
+
+def verify_weights(model, checkpoint: Path) -> dict:
+    """Compare every tensor in the checkpoint file with what ended up in the model."""
+    import torch
+    from safetensors.torch import load_file
+
+    saved = load_file(str(checkpoint / "model.safetensors"))
+    state = model.state_dict()
+    missing = [k for k in saved if k not in state]
+    # The file keeps some head tensors in float32 while the authors' loader casts the
+    # model to bfloat16, so compare after the same cast.
+    different = [k for k in saved if k in state
+                 and not torch.equal(saved[k].to(state[k].dtype).float().cpu(), state[k].float().cpu())]
+    return {"tensors_in_file": len(saved), "not_in_model": missing, "different": different,
+            "model_only": [k for k in state if k not in saved]}
 
 
 class SWEPrunerBaseline:

@@ -1,0 +1,34 @@
+Paired bootstrap differences in gold-function recall, lite, bm25 top-5 files.
+
+| Question | A | B | Budget | A minus B (pp) | 95% interval | p | Issues |
+|---|---|---|---|---|---|---|---|
+| H1 | AST + BM25 | Line window | 10% | +36.3 | [+30.1, +42.3] | <0.001 | 274 |
+| H1 | AST + BM25 | Line window | 25% | +38.6 | [+31.9, +45.1] | <0.001 | 274 |
+| H1 | AST + BM25 | Line window | 50% | +27.7 | [+21.2, +33.9] | <0.001 | 274 |
+| H1 | AST + BM25 | Line window | 1000 tok | +27.4 | [+22.4, +32.8] | <0.001 | 274 |
+| H1 | AST + BM25 | Line window | 2000 tok | +32.0 | [+26.5, +37.6] | <0.001 | 274 |
+| H1 | AST + BM25 | Line window | 4000 tok | +36.4 | [+30.3, +42.7] | <0.001 | 274 |
+| H1 | AST + BM25 | Chunk RAG (BM25) | 10% | +13.6 | [+8.2, +19.0] | <0.001 | 274 |
+| H1 | AST + BM25 | Chunk RAG (BM25) | 25% | +10.3 | [+5.0, +15.5] | <0.001 | 274 |
+| H1 | AST + BM25 | Chunk RAG (BM25) | 50% | +4.5 | [+0.1, +9.2] | 0.049 | 274 |
+| H1 | AST + BM25 | Chunk RAG (BM25) | 1000 tok | +15.8 | [+11.1, +20.7] | <0.001 | 274 |
+| H1 | AST + BM25 | Chunk RAG (BM25) | 2000 tok | +15.5 | [+10.4, +20.7] | <0.001 | 274 |
+| H1 | AST + BM25 | Chunk RAG (BM25) | 4000 tok | +16.5 | [+11.1, +22.0] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + UniXcoder, zero-shot | 10% | +25.5 | [+20.4, +30.6] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + UniXcoder, zero-shot | 25% | +20.2 | [+15.6, +24.7] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + UniXcoder, zero-shot | 50% | +9.8 | [+6.5, +13.3] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + UniXcoder, zero-shot | 1000 tok | +19.8 | [+14.9, +24.7] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + UniXcoder, zero-shot | 2000 tok | +23.4 | [+18.0, +29.0] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + UniXcoder, zero-shot | 4000 tok | +25.9 | [+20.8, +31.2] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + BM25 | 10% | +22.2 | [+16.9, +27.5] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + BM25 | 25% | +17.6 | [+13.1, +22.4] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + BM25 | 50% | +10.8 | [+7.3, +14.4] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + BM25 | 1000 tok | +13.9 | [+8.2, +19.3] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + BM25 | 2000 tok | +18.4 | [+12.7, +24.3] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + BM25 | 4000 tok | +21.2 | [+15.9, +26.6] | <0.001 | 274 |
+| H2 | AST + trained ranker + BM25 (ours) | AST + BM25 | 10% | +18.2 | [+13.6, +23.0] | <0.001 | 274 |
+| H2 | AST + trained ranker + BM25 (ours) | AST + BM25 | 25% | +15.9 | [+11.8, +20.2] | <0.001 | 274 |
+| H2 | AST + trained ranker + BM25 (ours) | AST + BM25 | 50% | +10.6 | [+7.1, +14.3] | <0.001 | 274 |
+| H2 | AST + trained ranker + BM25 (ours) | AST + BM25 | 1000 tok | +13.3 | [+8.5, +18.1] | <0.001 | 274 |
+| H2 | AST + trained ranker + BM25 (ours) | AST + BM25 | 2000 tok | +16.8 | [+12.1, +21.6] | <0.001 | 274 |
+| H2 | AST + trained ranker + BM25 (ours) | AST + BM25 | 4000 tok | +18.1 | [+13.3, +22.7] | <0.001 | 274 |
