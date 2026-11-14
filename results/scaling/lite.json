@@ -1,0 +1,177 @@
+{
+  "split": "lite",
+  "budget": 0.25,
+  "timing_issues": 60,
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "methods": {
+    "ast_trained": [
+      {
+        "k": 5,
+        "gold_fn_recall": 0.6843065693430657,
+        "recall_issues": 274,
+        "ms_per_issue": 827.1509167329592,
+        "ms_per_issue_median": 777.741990499635,
+        "ms_per_issue_p90": 1177.676025996334,
+        "ms_per_file": 165.43018334659186,
+        "score_ms": 677.8314214827939,
+        "select_ms": 68.47788111675375,
+        "parse_ms": 80.8416141334116,
+        "nodes": 302.46666666666664
+      },
+      {
+        "k": 10,
+        "gold_fn_recall": 0.7609489051094891,
+        "recall_issues": 274,
+        "ms_per_issue": 1427.7689868666737,
+        "ms_per_issue_median": 1430.9960470018268,
+        "ms_per_issue_p90": 2069.4623040035367,
+        "ms_per_file": 142.77689868666735,
+        "score_ms": 1170.0228174671793,
+        "select_ms": 100.30988579965197,
+        "parse_ms": 157.43628359984237,
+        "nodes": 596.5166666666667
+      },
+      {
+        "k": 20,
+        "gold_fn_recall": 0.833941605839416,
+        "recall_issues": 274,
+        "ms_per_issue": 2590.9400116504307,
+        "ms_per_issue_median": 2583.3817560014722,
+        "ms_per_issue_p90": 3331.005768995965,
+        "ms_per_file": 129.54700058252152,
+        "score_ms": 2116.7393704165684,
+        "select_ms": 170.62363978390445,
+        "parse_ms": 303.5770014499576,
+        "nodes": 1190.3
+      }
+    ],
+    "ast_bm25": [
+      {
+        "k": 5,
+        "gold_fn_recall": 0.5079075425790754,
+        "recall_issues": 274,
+        "ms_per_issue": 160.67016993317034,
+        "ms_per_issue_median": 137.0223209996766,
+        "ms_per_issue_p90": 258.4678579951287,
+        "ms_per_file": 32.13403398663407,
+        "score_ms": 56.854503766589914,
+        "select_ms": 24.249581999780883,
+        "parse_ms": 79.56608416679956,
+        "nodes": 302.46666666666664
+      },
+      {
+        "k": 10,
+        "gold_fn_recall": 0.6034063260340633,
+        "recall_issues": 274,
+        "ms_per_issue": 306.4738865495504,
+        "ms_per_issue_median": 279.63979950072826,
+        "ms_per_issue_p90": 430.7301310036564,
+        "ms_per_file": 30.64738865495504,
+        "score_ms": 110.72149568293146,
+        "select_ms": 37.317883933186145,
+        "parse_ms": 158.4345069334328,
+        "nodes": 596.5166666666667
+      },
+      {
+        "k": 20,
+        "gold_fn_recall": 0.6709245742092458,
+        "recall_issues": 274,
+        "ms_per_issue": 574.5503886832012,
+        "ms_per_issue_median": 546.1513160007598,
+        "ms_per_issue_p90": 849.9311880004825,
+        "ms_per_file": 28.727519434160058,
+        "score_ms": 221.8159416165387,
+        "select_ms": 56.41576485055945,
+        "parse_ms": 296.318682216103,
+        "nodes": 1190.3
+      }
+    ],
+    "ast_unixcoder": [
+      {
+        "k": 5,
+        "gold_fn_recall": 0.48266423357664234,
+        "recall_issues": 274,
+        "ms_per_issue": 770.5958183169665,
+        "ms_per_issue_median": 748.1826884977636,
+        "ms_per_issue_p90": 1070.3711550013395,
+        "ms_per_file": 154.11916366339332,
+        "score_ms": 661.2031080998955,
+        "select_ms": 29.7580746334764,
+        "parse_ms": 79.6346355835946,
+        "nodes": 302.46666666666664
+      },
+      {
+        "k": 10,
+        "gold_fn_recall": 0.5428832116788321,
+        "recall_issues": 274,
+        "ms_per_issue": 1399.2673931492998,
+        "ms_per_issue_median": 1394.457913498627,
+        "ms_per_issue_p90": 1985.0675810012035,
+        "ms_per_file": 139.92673931492996,
+        "score_ms": 1179.3389160004153,
+        "select_ms": 61.727262365820934,
+        "parse_ms": 158.20121478306342,
+        "nodes": 596.5166666666667
+      },
+      {
+        "k": 20,
+        "gold_fn_recall": 0.6128345498783455,
+        "recall_issues": 274,
+        "ms_per_issue": 2538.94731916674,
+        "ms_per_issue_median": 2529.2098589998204,
+        "ms_per_issue_p90": 3296.3673470003414,
+        "ms_per_file": 126.94736595833699,
+        "score_ms": 2141.254449499805,
+        "select_ms": 100.12461658322233,
+        "parse_ms": 297.56825308371236,
+        "nodes": 1190.3
+      }
+    ],
+    "chunk_bm25": [
+      {
+        "k": 5,
+        "gold_fn_recall": 0.4051094890510949,
+        "recall_issues": 274,
+        "ms_per_issue": 197.65209873282097,
+        "ms_per_issue_median": 180.84236600043369,
+        "ms_per_issue_p90": 313.34060600056546,
+        "ms_per_file": 39.5304197465642,
+        "score_ms": 97.21210008331884,
+        "select_ms": 16.35872863298573,
+        "parse_ms": 84.0812700165164,
+        "nodes": 302.46666666666664
+      },
+      {
+        "k": 10,
+        "gold_fn_recall": 0.48783454987834546,
+        "recall_issues": 274,
+        "ms_per_issue": 380.4134303662674,
+        "ms_per_issue_median": 359.2201824976655,
+        "ms_per_issue_p90": 559.9205249964143,
+        "ms_per_file": 38.041343036626735,
+        "score_ms": 193.5542629998963,
+        "select_ms": 29.995059699770838,
+        "parse_ms": 156.86410766660023,
+        "nodes": 596.5166666666667
+      },
+      {
+        "k": 20,
+        "gold_fn_recall": 0.597323600973236,
+        "recall_issues": 274,
+        "ms_per_issue": 720.1630737502759,
+        "ms_per_issue_median": 654.0795100008836,
+        "ms_per_issue_p90": 1154.831482002919,
+        "ms_per_file": 36.00815368751379,
+        "score_ms": 366.49543808368134,
+        "select_ms": 55.672298099913554,
+        "parse_ms": 297.995337566681,
+        "nodes": 1190.3
+      }
+    ]
+  },
+  "parameters": {
+    "trained": 125929728,
+    "unixcoder": 125929728
+  }
+}

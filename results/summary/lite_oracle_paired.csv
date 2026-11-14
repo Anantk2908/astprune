@@ -71,3 +71,15 @@ lite,oracle,H2_training,ast_hybrid,ast_bm25,f2000,gold_fn_recall,0.15942,0.10362
 lite,oracle,H2_training,ast_hybrid,ast_bm25,f2000,gold_line_recall,0.11124,0.05575,0.16968,0.0,235
 lite,oracle,H2_training,ast_hybrid,ast_bm25,f4000,gold_fn_recall,0.17031,0.11475,0.22769,0.0,183
 lite,oracle,H2_training,ast_hybrid,ast_bm25,f4000,gold_line_recall,0.13864,0.08269,0.19489,0.0,187
+lite,oracle,external,ast_trained,swe_pruner,r0.10,gold_fn_recall,0.34398,0.2865,0.40176,0.0,274
+lite,oracle,external,ast_trained,swe_pruner,r0.10,gold_line_recall,-0.13002,-0.1876,-0.07165,0.0,286
+lite,oracle,external,ast_trained,swe_pruner,r0.25,gold_fn_recall,0.48601,0.42701,0.54562,0.0,274
+lite,oracle,external,ast_trained,swe_pruner,r0.25,gold_line_recall,-0.03744,-0.08866,0.01468,0.1572,286
+lite,oracle,external,ast_trained,swe_pruner,r0.50,gold_fn_recall,0.44465,0.38504,0.50304,0.0,274
+lite,oracle,external,ast_trained,swe_pruner,r0.50,gold_line_recall,-0.02262,-0.06258,0.01693,0.2702,286
+lite,oracle,external,ast_trained,swe_pruner,f1000,gold_fn_recall,0.42155,0.36165,0.48177,0.0,256
+lite,oracle,external,ast_trained,swe_pruner,f1000,gold_line_recall,-0.06322,-0.11915,-0.00813,0.0264,264
+lite,oracle,external,ast_trained,swe_pruner,f2000,gold_fn_recall,0.48587,0.42174,0.55,0.0,230
+lite,oracle,external,ast_trained,swe_pruner,f2000,gold_line_recall,0.01155,-0.03708,0.05913,0.6462,235
+lite,oracle,external,ast_trained,swe_pruner,f4000,gold_fn_recall,0.5255,0.45537,0.59656,0.0,183
+lite,oracle,external,ast_trained,swe_pruner,f4000,gold_line_recall,0.06202,0.01791,0.10726,0.0054,187

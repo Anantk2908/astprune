@@ -1,0 +1,29 @@
+{
+  "split": "lite",
+  "setting": "oracle_imports",
+  "budget": 0.25,
+  "categories": [
+    "file not among candidates",
+    "function too large for the budget",
+    "near miss (next in line or signature kept)",
+    "issue does not name the function",
+    "named in the issue but outranked"
+  ],
+  "counts": {
+    "ast_trained": {
+      "file not among candidates": 0,
+      "function too large for the budget": 2,
+      "near miss (next in line or signature kept)": 10,
+      "issue does not name the function": 6,
+      "named in the issue but outranked": 1
+    },
+    "ast_bm25": {
+      "file not among candidates": 0,
+      "function too large for the budget": 2,
+      "near miss (next in line or signature kept)": 58,
+      "issue does not name the function": 18,
+      "named in the issue but outranked": 0
+    }
+  },
+  "gold_functions_total": 317
+}

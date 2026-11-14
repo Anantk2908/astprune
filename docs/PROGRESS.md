@@ -80,3 +80,28 @@ Everything below was decided from `results/tables/dev_*.md`. The commit that add
 | Order | by score | 60.1 / 79.1, against 59.4 / 78.5 for probability per token |
 
 The rank fusion with BM25 was our own suggested improvement to the proposal. It did not help and is reported as a negative result.
+
+## Status note, Nov 14, about 09:50 (written before a laptop restart)
+
+Done and committed:
+- Lite and Verified test runs for all our methods and ablations. Tables, figures, README tables and `report/numbers.tex` rebuilt from them.
+- SWE-Pruner (released checkpoint) on Lite, gold files and gold files plus imports, all 300 issues. Took 4.5 hours.
+- LongCodeZip ranking-only mode on a fixed 100-issue sample of Lite (`--sample 100`, gold files only).
+- `slides/build_slides.py` and `slides/presentation.pptx` (14 slides, 3 more appear when their results exist).
+- Report section 7 (discussion, limitations, TA feedback, future work, conclusion).
+
+Running when the laptop was restarted:
+- LongCodeZip full mode on the same 100-issue sample, 3 hour cap. It writes to a `.tmp` file that is lost if the run is killed, so the rows finished so far were copied to `results/partial/lite_oracle_longcodezip_full_partial.jsonl`. The two LongCodeZip modes must be smoke-tested in separate processes, together they run out of GPU memory.
+
+To continue after a restart:
+1. `cd` to the project and run `setsid nohup scripts/run_queue.sh > /dev/null 2>&1 &`. Finished steps are skipped. Progress is in `logs/queue.log`.
+2. Queue order from here: LongCodeZip full (100 issues, 3 h cap), scaling, CPU scaling, error analysis, perplexity baseline on Lite, downstream check with the 7B model, then `CORE_DONE`. After that: perplexity on dev, seeds `seed1`, `seed2` and the unfiltered-training run, SWE-Pruner and perplexity on Verified.
+
+Still to write once those results exist:
+- `report/sections/06_analysis.tex` (must define `\label{sec:external}`): third-party baselines with their exact conditions, perplexity baseline, scaling and latency, error analysis with case studies, downstream check, seed variance.
+- `docs/baselines.md` and `docs/error_analysis.md` (the README links to both).
+- Then: `summarize.py`, `make_tables.py`, `make_figures.py` for lite, verified and dev, `make_report_numbers.py`, `scripts/fill_docs.py`, `slides/build_slides.py`, `experiments/demo_reliability.py --runs 20`, `notebooks/build_notebook.py`, full `pytest`, tick the boxes in `docs/PLAN.md`.
+
+Finding to report as it is: SWE-Pruner prunes lines, so on gold-function recall it is far below our method (54.6 against 94.3 at the 25% budget, gold files plus imports), but on gold-line recall it is level with ours in that setting (87.6 against 87.8) and better with gold files only at the 10% budget (58.9 against 45.9). Its views parse as Python in under 25% of cases.
+
+Left for the team: put the 484 MB checkpoint on a release page and fill the link in the README, add the GitHub remote and push, record the backup demo video.

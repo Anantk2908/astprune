@@ -18,15 +18,20 @@ done
 log "MAIN_TEST_DONE"
 
 # Third-party baselines, only if their smoke test passes.
-if $PY scripts/smoke_external.py swe_pruner > logs/smoke_swe_pruner.log 2>&1; then
+if [ -s results/runs/lite/oracle_imports/swe_pruner.jsonl ] || $PY scripts/smoke_external.py swe_pruner > logs/smoke_swe_pruner.log 2>&1; then
   log "swe_pruner smoke ok"
   ev --split lite --methods swe_pruner --settings oracle oracle_imports > logs/eval_lite_swe_pruner.log 2>&1; log "lite swe_pruner exit=$?"
 else log "swe_pruner smoke FAILED"; fi
-if $PY scripts/smoke_external.py longcodezip_rank longcodezip > logs/smoke_longcodezip.log 2>&1; then
-  log "longcodezip smoke ok"
-  ev --split lite --methods longcodezip_rank --settings oracle > logs/eval_lite_lcz_rank.log 2>&1; log "lite longcodezip_rank exit=$?"
+# The two LongCodeZip modes are smoke-tested in separate processes: together they
+# load two copies of the scoring model and run out of GPU memory.
+if [ -s results/runs/lite/oracle/longcodezip_rank.jsonl ] || $PY scripts/smoke_external.py longcodezip_rank > logs/smoke_longcodezip_rank.log 2>&1; then
+  log "longcodezip_rank smoke ok"
+  ev --split lite --methods longcodezip_rank --settings oracle --sample 100 > logs/eval_lite_lcz_rank.log 2>&1; log "lite longcodezip_rank (100 issues) exit=$?"
+else log "longcodezip_rank smoke FAILED"; fi
+if [ -s results/runs/lite/oracle/longcodezip.jsonl ] || $PY scripts/smoke_external.py longcodezip > logs/smoke_longcodezip_full.log 2>&1; then
+  log "longcodezip full smoke ok"
   timeout 3h $PY experiments/evaluate.py --split lite --methods longcodezip --settings oracle --sample 100 > logs/eval_lite_lcz_full.log 2>&1; log "lite longcodezip full (100 issues) exit=$?"
-else log "longcodezip smoke FAILED"; fi
+else log "longcodezip full smoke FAILED"; fi
 log "EXTERNAL_DONE"
 
 $PY experiments/scaling.py --split lite > logs/scaling.log 2>&1; log "scaling gpu exit=$?"
