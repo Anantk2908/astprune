@@ -1,0 +1,13 @@
+Gold-function recall (%) at a 25% budget under each candidate-file setting, verified.
+
+| Method | Gold files only | Gold files + direct imports | BM25 top-5 files | BM25 top-10 files | BM25 top-20 files |
+|---|---|---|---|---|---|
+| Line window | 16.7 | 17.0 | 13.1 | 14.5 | 15.6 |
+| Chunk RAG (BM25) | 27.9 | 54.2 | 33.4 | 43.2 | 55.8 |
+| Chunk RAG (UniXcoder, zero-shot) | 22.8 | 44.5 | 30.9 | n/a | n/a |
+| Skeleton (Agentless-style) | 13.3 | 8.7 | 29.9 | 41.2 | 50.7 |
+| AST + random order | 21.5 | 21.6 | 15.6 | 18.9 | 21.1 |
+| AST + BM25 | 53.7 | 73.7 | 49.3 | 59.0 | 67.3 |
+| AST + UniXcoder, zero-shot | 48.1 | 66.9 | 46.1 | 52.7 | 61.9 |
+| AST + trained ranker (ours) | 73.2 | 92.8 | 63.7 | 74.9 | 83.7 |
+| AST + trained ranker + BM25 (ours) | 69.1 | 91.4 | 61.4 | 73.1 | 82.6 |

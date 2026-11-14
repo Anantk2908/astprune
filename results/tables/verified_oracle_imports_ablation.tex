@@ -1,0 +1,15 @@
+\begin{tabular}{lrrrrrr}
+\toprule
+Selector & Recall @10\% & Recall @25\% & Recall @50\% & Sig. recall @10\% & Sig. recall @25\% & Line recall @25\% \\
+\midrule
+AST + BM25 & 56.5 & 73.7 & 86.8 & 64.3 & 76.5 & 72.9 \\
+AST + BM25, no signature tier & 57.1 & 74.6 & 86.8 & 57.1 & 74.6 & 73.5 \\
+AST + trained ranker (ours) & 83.2 & 92.8 & 98.1 & 88.1 & 94.6 & 87.0 \\
+AST + trained ranker (ours), rank by probability per token & 81.2 & 92.9 & 98.0 & 87.4 & 95.2 & 86.7 \\
+AST + trained ranker (ours), no signature tier & 83.5 & 92.8 & 98.1 & 83.5 & 92.8 & 87.0 \\
+AST + trained ranker (ours), budget split per file & 47.3 & 72.1 & 88.4 & 68.8 & 87.2 & 67.2 \\
+AST + trained ranker (ours), 15\% of budget reserved for signatures & 81.3 & 91.6 & 97.8 & 93.6 & 98.2 & 86.0 \\
+AST + trained ranker (ours), 30\% of budget reserved for signatures & 79.3 & 90.2 & 97.0 & 95.4 & 99.5 & 85.0 \\
+AST + trained ranker + BM25 (ours) & 78.5 & 91.4 & 96.1 & 83.9 & 92.4 & 86.6 \\
+\bottomrule
+\end{tabular}

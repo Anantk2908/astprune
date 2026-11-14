@@ -12,6 +12,19 @@ The question we set out to answer: does a ranker trained on real bug fixes keep 
 Main test set: SWE-bench Lite, candidate files are the files the gold patch touches plus the files they import. A gold function counts as kept only if every line of it survives. Brackets are 95% bootstrap intervals over issues. Budgets are a share of the candidate files' tokens.
 
 <!-- table:lite_oracle_imports_main -->
+Gold-function recall with 95% bootstrap intervals and other metrics, in percent. lite, gold files + direct imports, 274 issues with a gold function.
+
+| Method | Recall @10% | Recall @25% | Recall @50% | Line recall @25% | All-gold @25% | Sig. recall @25% | Precision @25% | Parses @25% |
+|---|---|---|---|---|---|---|---|---|
+| Line window | 4.8 [2.6, 7.4] | 17.2 [13.0, 21.7] | 43.1 [37.4, 48.8] | 25.0 | 16.1 | 26.6 | 2.1 | 39.4 |
+| Chunk RAG (BM25) | 36.5 [30.9, 42.3] | 55.5 [49.7, 61.2] | 80.3 [75.5, 84.9] | 77.7 | 54.0 | 74.3 | 6.0 | 12.4 |
+| Chunk RAG (UniXcoder, zero-shot) | 22.4 [17.7, 27.4] | 46.8 [41.1, 52.5] | 69.8 [64.4, 75.0] | 69.6 | 44.9 | 65.3 | 5.1 | 13.1 |
+| Skeleton (Agentless-style) | 1.1 [0.0, 2.6] | 6.8 [4.0, 9.9] | 35.9 [30.3, 41.6] | 9.7 | 6.6 | 97.8 | 0.9 | 100.0 |
+| AST + random order | 9.3 [6.0, 12.8] | 20.7 [16.2, 25.3] | 44.5 [38.9, 50.1] | 21.1 | 18.2 | 23.2 | 1.2 | 100.0 |
+| AST + BM25 | 60.9 [55.2, 66.5] | 77.1 [72.2, 81.8] | 90.7 [87.2, 94.0] | 76.2 | 74.5 | 81.5 | 6.5 | 100.0 |
+| AST + UniXcoder, zero-shot | 46.6 [40.9, 52.4] | 64.0 [58.3, 69.5] | 83.5 [79.0, 87.6] | 66.2 | 61.7 | 68.8 | 4.8 | 100.0 |
+| AST + trained ranker (ours) | 81.8 [77.2, 86.1] | 94.3 [91.6, 96.9] | 98.0 [96.4, 99.3] | 87.8 | 93.8 | 95.4 | 7.1 | 100.0 |
+| AST + trained ranker + BM25 (ours) | 79.6 [74.8, 84.3] | 92.9 [89.8, 95.8] | 97.6 [95.6, 99.3] | 87.0 | 92.3 | 93.6 | 7.0 | 100.0 |
 <!-- /table -->
 
 ![Recall against budget on SWE-bench Lite](results/figures/lite_recall_vs_budget.png)
@@ -26,6 +39,19 @@ What we take from this:
 The same tables for SWE-bench Verified (500 issues), for gold files only, and for files retrieved with BM25 are in [results/tables/](results/tables/). The second test set agrees with the first:
 
 <!-- table:verified_settings -->
+Gold-function recall (%) at a 25% budget under each candidate-file setting, verified.
+
+| Method | Gold files only | Gold files + direct imports | BM25 top-5 files | BM25 top-10 files | BM25 top-20 files |
+|---|---|---|---|---|---|
+| Line window | 16.7 | 17.0 | 13.1 | 14.5 | 15.6 |
+| Chunk RAG (BM25) | 27.9 | 54.2 | 33.4 | 43.2 | 55.8 |
+| Chunk RAG (UniXcoder, zero-shot) | 22.8 | 44.5 | 30.9 | n/a | n/a |
+| Skeleton (Agentless-style) | 13.3 | 8.7 | 29.9 | 41.2 | 50.7 |
+| AST + random order | 21.5 | 21.6 | 15.6 | 18.9 | 21.1 |
+| AST + BM25 | 53.7 | 73.7 | 49.3 | 59.0 | 67.3 |
+| AST + UniXcoder, zero-shot | 48.1 | 66.9 | 46.1 | 52.7 | 61.9 |
+| AST + trained ranker (ours) | 73.2 | 92.8 | 63.7 | 74.9 | 83.7 |
+| AST + trained ranker + BM25 (ours) | 69.1 | 91.4 | 61.4 | 73.1 | 82.6 |
 <!-- /table -->
 
 All tuning was done on the SWE-bench dev split. The test sets were run once, after the choices were written down ([docs/PROGRESS.md](docs/PROGRESS.md), "Choices frozen on dev").
