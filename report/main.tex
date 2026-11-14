@@ -9,7 +9,7 @@
 \usepackage[hidelinks]{hyperref}
 \graphicspath{{../results/figures/}}
 \input{numbers}
-\newcommand{\T}[1]{\input{../results/tables/#1.tex}}
+\newcommand{\T}[1]{\IfFileExists{../results/tables/#1.tex}{\input{../results/tables/#1.tex}}{\textbf{(table #1 not built yet)}}}
 
 \begin{document}
 
