@@ -1,0 +1,42 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{What the results say}
+
+Both hypotheses hold, with one qualification each.
+
+\emph{H1, the unit.} Pruning whole functions keeps far more gold functions than pruning lines or chunks under the same ranking signal. The qualification is that this metric rewards function-shaped units by construction. On gold-line recall, which does not, BM25 over chunks and BM25 over AST nodes are close (\res{lite:oracle_imports:chunk_bm25:r0.25:gold_line_recall}\% and \res{lite:oracle_imports:ast_bm25:r0.25:gold_line_recall}\% at the 25\% budget on Lite). So with a weak ranker, the AST unit does not find the edited lines more often. What it buys is that the lines arrive inside a complete function and that the view still parses, which chunk views do in only \res{lite:oracle_imports:chunk_bm25:r0.25:parse_rate}\% of cases.
+
+\emph{H2, training.} The trained ranker beats the same encoder without fine-tuning and beats BM25 on the same nodes, on both metrics, on both test sets, and in every candidate-file setting. On Verified with gold files and their imports it keeps \res{verified:oracle_imports:ast_trained:r0.25:gold_fn_recall}\% of gold functions at the 25\% budget against \res{verified:oracle_imports:ast_bm25:r0.25:gold_fn_recall}\% for BM25. The qualification is that the gain shrinks as the budget grows. At 50\% most rankings keep the right function, and a team that can afford half the tokens gets most of the benefit from BM25 and the selector alone.
+
+The practical reading is that the trained ranker matters most where pruning is most useful, at tight budgets and with many candidate files. It is also cheap. The model has 125M parameters, was trained in \stat{train:main:minutes} minutes on a laptop GPU, and needs no language model at inference time.
+
+\subsection{Limitations}
+
+\emph{We do not measure bug fixing.} The evaluation asks whether the code a human edited survives pruning. That is a necessary condition for an agent to fix the bug from the pruned view, not a sufficient one, and we ran no tests. The downstream check in Section~\ref{sec:external} is a static proxy on a small model and should be read as that.
+
+\emph{The gold patch is one fix, not the only one.} A function the ranker kept instead may have been a reasonable place to fix the issue. Our recall numbers treat it as a miss.
+
+\emph{Issues without an edited function are excluded.} A fix that only adds new functions or only edits non-Python files leaves nothing to keep. These issues are counted in Table~\ref{tab:data} and left out of the recall numbers, so the results say nothing about them.
+
+\emph{Oracle files in the main setting.} The main table assumes the right files are among the candidates. With files retrieved by BM25 the ordering of methods is the same, but every number is lower because retrieval sometimes misses the gold file (Table~\ref{tab:settings}).
+
+\emph{Truncated inputs.} The ranker reads the first 512 tokens of an issue and the first 256 tokens of a node. A long function is judged by its signature, docstring and opening lines.
+
+\emph{Hard budget.} A function larger than the whole budget cannot be kept and comes back as a signature. The caller has to ask again with more room.
+
+\emph{Scope.} Python only, and the test sets cover 12 well-known projects. The training repositories are disjoint from them, which is evidence of transfer across projects, but all of it is mainstream open-source Python.
+
+\emph{Baselines under hardware limits.} The third-party systems were run on one 8\,GB laptop GPU. Where that forced a smaller scoring model or a sample of issues, Section~\ref{sec:external} says so, and those rows should not be read as the best those systems can do.
+
+\subsection{Feedback from the TA}
+
+The TA approved the topic after the first proposal and asked for two things. The first was more related literature, since the first proposal compared against four systems only. Section~\ref{sec:related} now covers retrieval and localization, prompt compression and learned pruners for agents, and three of those systems are baselines in our experiments. The second was a metrics plan, since the first proposal had a single metric. The plan became the seven metrics of Section~\ref{sec:setup}, the rule that every method gets the same files and the same budget, and the paired bootstrap intervals. Working through the metrics plan also led to changes nobody asked for: a validation split kept apart from the test sets, gold-line recall as a metric that does not favour our own unit, a measured parse rate, and a second test set.
+
+\subsection{Future work}
+
+The obvious next step is to run an agent with and without the pruner on SWE-bench and count resolved issues and tokens spent. Second, the signature tier invites a two-step protocol in which the agent asks for the body of a signature it finds interesting. We built the tool for it but did not study how agents use it. Third, the ranker could score a function from several windows instead of its head, which should help with long functions. Fourth, tree-sitter has grammars for most languages, so the parser and selector carry over, while the ranker would need training data from fixes in those languages.
+
+\section{Conclusion}
+
+We trained a small encoder on real bug fixes to decide which functions of a Python file an agent should read under a token budget, and paired it with a selector that keeps functions whole, as signatures, or not at all. On SWE-bench Lite it keeps \res{lite:oracle_imports:ast_trained:r0.10:gold_fn_recall}\% of the functions the real fix edits while showing a tenth of the tokens, against \res{lite:oracle_imports:ast_bm25:r0.10:gold_fn_recall}\% for BM25 on the same functions and \res{lite:oracle_imports:chunk_bm25:r0.10:gold_fn_recall}\% for chunk retrieval. The result repeats on SWE-bench Verified and with retrieved files. One idea we expected to help, fusing the trained ranker with BM25, did not. The pruner runs as an MCP server, and the code, per-issue results and trained checkpoint are available with the repository.
