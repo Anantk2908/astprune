@@ -19,7 +19,7 @@ Each case then gets one cause, by these rules in order:
 4. **Outranked, issue does not name it.** Other code ranked higher and used up the budget, and the issue never mentions the function by name.
 5. **Outranked, issue names it.** Same, although the issue does mention it.
 
-The rules only sort cases into piles. We then read through the piles: all of our ranker's cases at 25% and a good part of the rest. Every case is listed in the tables at the end, and the raw rows are in `results/error_analysis/`.
+The rules only sort cases into piles. We read all of our ranker's cases at 25% by hand and took the case studies from them and from BM25's list. Every case is listed in the tables at the end, and the raw rows are in `results/error_analysis/`.
 
 ## Counts
 
@@ -37,13 +37,23 @@ Lost gold functions by cause, lite, gold files plus imports, 25% budget (317 gol
 <!-- /table -->
 
 <!-- table:lite_r0.10_errors -->
+Lost gold functions by cause, lite, gold files plus imports, 10% budget (317 gold functions in all).
+
+| Cause | AST + trained ranker (ours) | AST + BM25 |
+|---|---|---|
+| file not among candidates | 0 | 0 |
+| function too large for the budget | 11 | 12 |
+| only its signature fit | 11 | 11 |
+| outranked, issue does not name it | 29 | 93 |
+| outranked, issue names it | 5 | 13 |
+| total | 56 | 129 |
 <!-- /table -->
 
 What stands out:
 
 - **Most misses, for both methods, are functions the issue never names.** Those issues describe a symptom (an error, a wrong result, a server that does not restart), and the fix sits in code with different names. This is also where training makes the biggest difference. At the 25% budget BM25 loses 53 such functions. Our ranker keeps 45 of them, and loses 12 of its own.
-- **Functions too large for the budget are rare at 25%** and more common at 10%. In those cases the ranker often puts the function first, so this is a limit of the budget, not of the ranking.
-- **Signature-only cases are much more common for BM25.** It tends to put large, word-heavy nodes first, which use up the budget before the gold function's turn.
+- **Functions too large for the budget are rare at 25% and common at 10%.** At 10% they are 11 of our ranker's 56 losses, and in 10 of those 11 the ranker put the function first or second. So this is a limit of the budget, not of the ranking.
+- **Signature-only cases depend on the budget.** At 25% they are much more common for BM25 (14 against 2). At 10% the two methods are level (11 each).
 - **Naming the function does not guarantee a hit.** A few issues mention the gold function in passing next to many others, and other code that looks more relevant ranks above it.
 
 ## Case studies
@@ -70,7 +80,6 @@ Our ranker puts it first of 9 nodes. It cannot fit, so the selector shows its si
 
 - A function that is too large for the budget could be shown as its signature plus its first lines, instead of the signature alone. That keeps the most likely fix site partly visible at small budgets.
 - Symptom-style issues are where the ranker gains most and where it still fails most. More training data with that pattern, or giving the ranker more than the head of each function, are the obvious next steps.
-- None of the misses at these budgets came from parsing. Every gold function was found as a node.
 
 ## All cases
 

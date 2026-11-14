@@ -114,6 +114,13 @@ def stats() -> None:
             for i, c in enumerate(d["categories"]):
                 put("s", f"errors:{method}:{i}", counts[c])
                 put("s", f"errors:{method}:{i}:pct", f"{100 * counts[c] / max(total, 1):.0f}")
+    for path in sorted((PROJECT_ROOT / "results" / "error_analysis").glob("categories_r*.json")):
+        d = json.loads(path.read_text())
+        tag = path.stem.split("_", 1)[1]  # e.g. r0.10
+        for method, counts in d["counts"].items():
+            put("s", f"errors:{tag}:{method}:total", sum(counts.values()))
+            for i, c in enumerate(d["categories"]):
+                put("s", f"errors:{tag}:{method}:{i}", counts[c])
     for path in sorted((PROJECT_ROOT / "results" / "downstream").glob("*/summary.json")):
         d = json.loads(path.read_text())
         tag = path.parent.name
