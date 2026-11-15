@@ -52,6 +52,7 @@ LABELS = {
     "ast_trained_nosig": "Ours, no signature tier",
     "ast_trained_perfile": "Ours, budget split per file",
     "ast_trained_density": "Ours, score per token order",
+    "ast_trained@unfiltered": "Ours, no patch-size filter",
     "swe_pruner": "SWE-Pruner (released checkpoint)",
     "longcodezip_rank": "LongCodeZip, ranking only",
     "longcodezip": "LongCodeZip, full",
@@ -396,7 +397,10 @@ def build() -> Deck:
     # 11. ablations and the negative result
     s = deck.slide("What mattered, and one idea that did not work", "Evaluation",
                    "Be upfront: we expected fusion with BM25 to help and it did not. Pooled budget is the big design win.")
-    abl = ["ast_trained", "ast_hybrid", "ast_trained_perfile", "ast_trained_nosig", "ast_trained_density"]
+    seeds = [num.pct("lite", MAIN, m) for m in ("ast_trained", "ast_trained@seed1", "ast_trained@seed2")
+             if num.has("lite", MAIN, m)]
+    abl = ["ast_trained", "ast_hybrid", "ast_trained_perfile", "ast_trained_nosig", "ast_trained_density",
+           "ast_trained@unfiltered"]
     deck.table(s, ["Lite, gold + imports", "Recall 10%", "Recall 25%", "Signature recall 25%"],
                [[LABELS[m], r(m, "r0.10"), r(m, "r0.25"), r(m, metric="sig_recall")] for m in abl if num.has("lite", MAIN, m)],
                0.7, 1.9, 7.4, col_widths=[3.4, 1.3, 1.3, 1.9], size=14, highlight=(0,))
@@ -404,7 +408,8 @@ def build() -> Deck:
         "Fusion with BM25 | slightly below the trained ranker alone, on dev and on both test sets",
         "One shared budget | much better than giving each file its own share",
         "Signature tier | costs little recall and tells the agent what else is there",
-    ], 8.4, 1.9, 4.4, 4.6, size=16, gap=14)
+    ] + ([f"Seeds | three runs keep {min(seeds, key=float)} to {max(seeds, key=float)}% at 25%. Not a lucky seed"]
+         if len(seeds) == 3 else []), 8.4, 1.9, 4.4, 4.6, size=16, gap=14)
 
     # 12. third-party baselines, from the same-issue table
     ext_md = RESULTS / "tables" / "lite_external.md"
@@ -436,6 +441,12 @@ def build() -> Deck:
         md = RESULTS / "scaling" / "lite.md"
         if md.exists():
             deck.text(s, "\n".join(md.read_text().splitlines()[:14]), 8.2, 1.9, 4.7, 4.8, size=11, font=MONO)
+        cpu = read_json(RESULTS / "scaling" / "lite_cpu.json")
+        if cpu and {"ast_trained", "ast_bm25"} <= set(cpu["methods"]):
+            ours, bm25 = cpu["methods"]["ast_trained"][-1], cpu["methods"]["ast_bm25"][-1]
+            deck.text(s, f"On the laptop CPU with {ours['k']} files: {ours['ms_per_file'] / 1000:.1f} s per file for the "
+                         f"trained ranker, {bm25['ms_per_file']:.0f} ms for BM25. Without a GPU, BM25 is the fallback.",
+                      8.2, 5.8, 4.7, 0.9, size=13, color=SECONDARY)
     else:
         deck.skipped.append("scaling (results/figures/lite_scaling.png missing)")
 

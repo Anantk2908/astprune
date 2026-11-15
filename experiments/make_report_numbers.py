@@ -100,6 +100,7 @@ def stats() -> None:
                 key = f"scaling:{path.stem}:{method}:{p['k']}"
                 put("s", key + ":ms", f"{p['ms_per_issue']:.0f}")
                 put("s", key + ":ms_file", f"{p['ms_per_file']:.1f}")
+                put("s", key + ":s_file", f"{p['ms_per_file'] / 1000:.1f}")
                 put("s", key + ":score_ms", f"{p['score_ms']:.0f}")
                 put("s", key + ":select_ms", f"{p['select_ms']:.0f}")
                 if p["gold_fn_recall"] is not None:

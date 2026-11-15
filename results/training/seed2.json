@@ -1,0 +1,108 @@
+{
+  "config": {
+    "run_name": "seed2",
+    "base_model": "microsoft/unixcoder-base",
+    "seed": 2,
+    "epochs": 2.0,
+    "batch_issues": 8,
+    "same_file_negatives": 8,
+    "import_negatives": 3,
+    "accumulate": 2,
+    "lr": 2e-05,
+    "weight_decay": 0.01,
+    "warmup_fraction": 0.05,
+    "temperature": 0.05,
+    "max_grad_norm": 1.0,
+    "max_gold_functions": 5,
+    "max_per_repo": 1500,
+    "evals_per_epoch": 3,
+    "dev_setting": "oracle_imports",
+    "dev_budgets": [
+      0.1,
+      0.25
+    ],
+    "amp": true,
+    "grad_checkpointing": true
+  },
+  "examples_used": 14534,
+  "steps_per_epoch": 1623,
+  "total_batches": 3246,
+  "train_minutes": 76.5,
+  "parameters": 125929728,
+  "best": {
+    "recall_r0.10": 0.6060814649224026,
+    "recall_r0.25": 0.7906325055517764,
+    "mean_recall": 0.6983569852370894,
+    "n": 209,
+    "step": 2700,
+    "epoch": 1.664
+  },
+  "dev_history": [
+    {
+      "recall_r0.10": 0.2620511981011957,
+      "recall_r0.25": 0.4846507878794464,
+      "mean_recall": 0.37335099299032104,
+      "n": 209,
+      "step": 0,
+      "epoch": 0.0
+    },
+    {
+      "recall_r0.10": 0.5953247497588916,
+      "recall_r0.25": 0.7820331920004272,
+      "mean_recall": 0.6886789708796595,
+      "n": 209,
+      "step": 540,
+      "epoch": 0.333
+    },
+    {
+      "recall_r0.10": 0.5897254379047563,
+      "recall_r0.25": 0.783972092949592,
+      "mean_recall": 0.6868487654271742,
+      "n": 209,
+      "step": 1080,
+      "epoch": 0.665
+    },
+    {
+      "recall_r0.10": 0.6018972369222677,
+      "recall_r0.25": 0.7814172336380372,
+      "mean_recall": 0.6916572352801524,
+      "n": 209,
+      "step": 1620,
+      "epoch": 0.998
+    },
+    {
+      "recall_r0.10": 0.6031926991938266,
+      "recall_r0.25": 0.7737030061575249,
+      "mean_recall": 0.6884478526756757,
+      "n": 209,
+      "step": 2160,
+      "epoch": 1.331
+    },
+    {
+      "recall_r0.10": 0.6060814649224026,
+      "recall_r0.25": 0.7906325055517764,
+      "mean_recall": 0.6983569852370894,
+      "n": 209,
+      "step": 2700,
+      "epoch": 1.664
+    },
+    {
+      "recall_r0.10": 0.6046167847071435,
+      "recall_r0.25": 0.7908920103784616,
+      "mean_recall": 0.6977543975428026,
+      "n": 209,
+      "step": 3240,
+      "epoch": 1.996
+    },
+    {
+      "recall_r0.10": 0.6045396123039949,
+      "recall_r0.25": 0.7908920103784616,
+      "mean_recall": 0.6977158113412283,
+      "n": 209,
+      "step": 3246,
+      "epoch": 2.0
+    }
+  ],
+  "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "torch": "2.15.0+cu132"
+}

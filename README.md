@@ -35,6 +35,7 @@ What we take from this:
 
 - **Training helps.** Same nodes, same selector, same encoder architecture. Only the weights differ between "UniXcoder, zero-shot" and "trained ranker". The trained ranker also beats BM25 on the same nodes at every budget. Paired differences with intervals are in [results/tables/lite_oracle_imports_paired.md](results/tables/lite_oracle_imports_paired.md).
 - **A small trained encoder beats a bigger model used without training.** AST + LLM perplexity ranks the same nodes by LongCodeZip's criterion with Qwen2.5-Coder-1.5B, about twelve times the size of our encoder. It is the best training-free ranker here at the 10% and 25% budgets, and still about 12 points behind the trained ranker at 25%. It also needs 1.76 seconds per file where ours needs 0.03 (table below).
+- **It is not a lucky seed.** Two more training runs with other seeds land within a point of the main run on Lite and on dev, and training without the filter on patch size changes nothing measurable ([results/tables/lite_seeds.md](results/tables/lite_seeds.md)).
 - **The gap shrinks as the budget grows**, as we expected. With enough room almost any ranking keeps the right function.
 - **Whole functions beat lines and chunks on function recall.** On gold-line recall, which does not care about function boundaries, chunk retrieval with BM25 is about level with BM25 on AST nodes. So part of the advantage of AST nodes is that they keep functions intact, not that they find the edited lines more often. The chunk view parses as Python in about one case out of eight.
 - **Something we expected to help did not.** Fusing BM25 ranks with the trained ranker's ranks scores a little below the trained ranker alone.
@@ -184,6 +185,8 @@ To rerun from scratch:
 | Everything after training, in order | `scripts/run_queue.sh` | several hours | GPU with 8 GB |
 
 Our laptop: RTX 4060 Laptop GPU (8 GB), 16 CPU threads, 12 GB RAM, WSL2. No paid API is used anywhere. Settings that affect a number are in [experiments/config.yaml](experiments/config.yaml). Data sources and label rules are in [data/README.md](data/README.md).
+
+How fast the pruner itself is: with 20 candidate files the trained ranker needs about 130 ms per file on the GPU and about 7 s per file on the CPU, almost all of it in the encoder. BM25 ranking needs about 30 ms per file either way. So on a machine without a GPU, use the trained ranker for a few files at a time, or BM25. The numbers are in [results/scaling/](results/scaling/).
 
 Evaluation runs are skipped when their result file already exists, and training continues from its last checkpoint, so every command above is safe to run again after an interruption.
 

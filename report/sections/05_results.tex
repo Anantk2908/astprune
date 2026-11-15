@@ -75,3 +75,17 @@ Table~\ref{tab:ablation} varies one selector choice at a time. The choices thems
 \emph{The signature tier} costs almost nothing in the default setting, where signatures only use budget left over after the full bodies: full recall is \res{lite:oracle_imports:ast_trained:r0.10:gold_fn_recall}\% with it and \res{lite:oracle_imports:ast_trained_nosig:r0.10:gold_fn_recall}\% without, while signature recall at 10\% rises from \res{lite:oracle_imports:ast_trained_nosig:r0.10:sig_recall}\% to \res{lite:oracle_imports:ast_trained:r0.10:sig_recall}\%. Reserving 15\% of the budget for signatures is a real trade: full recall at 10\% falls to \res{lite:oracle_imports:ast_trained_sig15:r0.10:gold_fn_recall}\% and signature recall rises to \res{lite:oracle_imports:ast_trained_sig15:r0.10:sig_recall}\%. Which side of that trade is better depends on whether the agent can ask again, which our offline evaluation cannot settle.
 
 \emph{Ranking by probability per token}, the usual greedy rule for a knapsack, is slightly worse than ranking by score (\res{lite:oracle_imports:ast_trained_density:r0.10:gold_fn_recall}\% at 10\%). It favours small units, and gold functions are larger than the average unit.
+
+\subsection{Training variance and the patch filter}
+\label{sec:seeds}
+
+\begin{table}[t]
+\caption{Training variance: gold-function recall (\%) of the trained ranker on dev, where the checkpoint is chosen, and on Lite, gold files + direct imports. The runs differ only in the seed, and in the last row in the filter that drops training patches touching more than five functions.}
+\label{tab:seeds}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\columnwidth}{!}{\T{lite_seeds}}
+\end{table}
+
+We trained the ranker twice more with other seeds, and once without the filter on patch size (Table~\ref{tab:seeds}). The seed barely matters. On Lite the three runs keep \stat{seeds:lite:r0.10:min} to \stat{seeds:lite:r0.10:max}\% of gold functions at the 10\% budget and \stat{seeds:lite:r0.25:min} to \stat{seeds:lite:r0.25:max}\% at 25\%, a spread far smaller than the gaps between methods. Without the filter the ranker trains on \stat{train:unfiltered:examples} examples instead of \stat{train:main:examples}. It is level with the seeded runs on Lite (\res{lite:oracle_imports:ast_trained@unfiltered:r0.25:gold_fn_recall}\% at 25\%) and about a point lower on dev at the 10\% budget (\res{dev:oracle_imports:ast_trained@unfiltered:r0.10:gold_fn_recall}\% against \stat{seeds:dev:r0.10:min} to \stat{seeds:dev:r0.10:max}\%). So the filter, which we added to keep noisy multi-function patches out of training, makes no measurable difference.

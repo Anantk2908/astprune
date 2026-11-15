@@ -1,0 +1,146 @@
+{
+  "split": "dev",
+  "settings": [
+    "oracle_imports"
+  ],
+  "methods": [
+    "ast_trained@unfiltered"
+  ],
+  "n_issues": 223,
+  "random_sample": null,
+  "config": {
+    "tokenizer": "cl100k_base",
+    "budgets": {
+      "relative": [
+        0.1,
+        0.25,
+        0.5
+      ],
+      "fixed": [
+        1000,
+        2000,
+        4000
+      ]
+    },
+    "settings": [
+      "oracle",
+      "oracle_imports",
+      "bm25_5",
+      "bm25_10",
+      "bm25_20"
+    ],
+    "primary_setting": "oracle_imports",
+    "selector": {
+      "sig_tier": true,
+      "sig_reserve": 0.0,
+      "order": "score"
+    },
+    "models": {
+      "base_encoder": "microsoft/unixcoder-base",
+      "trained_checkpoint": "checkpoints/ranker/best",
+      "max_query_tokens": 512,
+      "max_node_tokens": 256
+    },
+    "perplexity": {
+      "model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "max_query_tokens": 256,
+      "max_node_tokens": 384
+    },
+    "longcodezip": {
+      "model": "Qwen/Qwen2.5-Coder-1.5B-Instruct"
+    },
+    "swe_pruner": {
+      "checkpoint": "checkpoints/swe_pruner"
+    },
+    "methods": {
+      "untrained": [
+        "line_window",
+        "chunk_bm25",
+        "chunk_unixcoder",
+        "skeleton",
+        "ast_random",
+        "ast_bm25",
+        "ast_unixcoder"
+      ],
+      "trained": [
+        "ast_trained",
+        "ast_hybrid"
+      ],
+      "perplexity": [
+        "ast_ppl"
+      ],
+      "external": [
+        "longcodezip_rank",
+        "longcodezip",
+        "swe_pruner"
+      ],
+      "ablations": [
+        "ast_trained_nosig",
+        "ast_trained_sig15",
+        "ast_trained_sig30",
+        "ast_trained_density",
+        "ast_trained_perfile",
+        "ast_bm25_nosig",
+        "ast_bm25_perfile"
+      ]
+    },
+    "comparisons": {
+      "H1_granularity": [
+        [
+          "ast_bm25",
+          "line_window"
+        ],
+        [
+          "ast_bm25",
+          "chunk_bm25"
+        ],
+        [
+          "ast_unixcoder",
+          "chunk_unixcoder"
+        ]
+      ],
+      "H2_training": [
+        [
+          "ast_trained",
+          "ast_unixcoder"
+        ],
+        [
+          "ast_trained",
+          "ast_bm25"
+        ],
+        [
+          "ast_hybrid",
+          "ast_bm25"
+        ],
+        [
+          "ast_trained",
+          "ast_ppl"
+        ]
+      ],
+      "external": [
+        [
+          "ast_trained",
+          "swe_pruner"
+        ],
+        [
+          "ast_trained",
+          "longcodezip_rank"
+        ],
+        [
+          "ast_trained",
+          "longcodezip"
+        ]
+      ]
+    },
+    "bootstrap": {
+      "resamples": 10000,
+      "seed": 20261113,
+      "level": 0.95
+    }
+  },
+  "seconds": 133.2,
+  "python": "3.12.3",
+  "torch": "2.15.0+cu132",
+  "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "finished": "2026-11-15 03:13:38"
+}

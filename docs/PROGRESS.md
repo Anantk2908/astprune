@@ -122,3 +122,10 @@ Left for the team: put the 484 MB checkpoint on a release page and fill the link
 - Downstream check with Qwen2.5-Coder-7B-Instruct in 4-bit on 100 Lite issues, gold files only, 25% budget capped at 4,000 tokens: an edit lands in a gold function for 35% of issues with our view, 29% with AST + BM25, 31% with chunk BM25, 23% with a line window, and 45% with whole files on the 64 issues where they fit (at three times the prompt). Only the gap to the line window is outside the noise (+12 [+1, +23]). Reported as a weak static proxy. New table `results/tables/lite_downstream_qwen7b_4bit.md`, report subsection `sec:downstream`, slide 15.
 - Report: fixed doubled punctuation after paragraph headings and a 16 pt overfull table. Still 9 pages, no undefined references.
 - Queue now on the extra training runs (seed1, seed2, unfiltered), then CPU latency and Verified runs for SWE-Pruner and perplexity.
+
+## Nov 15, early morning: seeds, patch filter, CPU timing
+
+- Two more seeds and a run without the patch-size filter, each trained for 2 epochs like the main run. Lite recall at 25% (gold + imports): 94.3, 94.2, 94.5 for seeds 0, 1, 2, and 94.5 without the filter. On dev the unfiltered run is about a point lower at 10% (58.6 against 59.5 to 60.6). Conclusion: the result does not depend on the seed, and the filter makes no measurable difference. Table `results/tables/lite_seeds.md`, report subsection `sec:seeds`, README bullet, ablation slide.
+- CPU timing over 10 Lite issues with cold caches: the trained ranker needs 6.9 to 8.2 s per file on the CPU (129.5 ms on the GPU), BM25 about 34 ms. Added to the README, the report (scaling paragraph and a new limitation) and the scaling slide. Without a GPU, BM25 is the practical fallback for many files.
+- Report is now 10 pages (no page limit in the rubric, IEEE template kept as is).
+- Queue now on SWE-Pruner and the perplexity baseline on Verified, the last step.
