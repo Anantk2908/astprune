@@ -1,0 +1,237 @@
+{
+  "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+  "four_bit": true,
+  "split": "lite",
+  "setting": "oracle",
+  "budget": 0.25,
+  "max_budget_tokens": 4000,
+  "conditions": {
+    "full": {
+      "n": 64,
+      "mean_prompt_tokens": 4676.46875,
+      "mean_seconds": 33.3090625,
+      "has_edit": {
+        "mean": 0.75,
+        "lo": 0.640625,
+        "hi": 0.84375,
+        "n": 64
+      },
+      "search_found": {
+        "mean": 0.625,
+        "lo": 0.5,
+        "hi": 0.734375,
+        "n": 64
+      },
+      "edits_gold_function": {
+        "mean": 0.453125,
+        "lo": 0.328125,
+        "hi": 0.578125,
+        "n": 64
+      },
+      "has_undefined_symbol": {
+        "mean": 0.015625,
+        "lo": 0.0,
+        "hi": 0.046875,
+        "n": 64
+      }
+    },
+    "ast_trained": {
+      "n": 100,
+      "mean_prompt_tokens": 2587.11,
+      "mean_seconds": 34.2817,
+      "has_edit": {
+        "mean": 0.65,
+        "lo": 0.56,
+        "hi": 0.74,
+        "n": 100
+      },
+      "search_found": {
+        "mean": 0.5,
+        "lo": 0.4,
+        "hi": 0.6,
+        "n": 100
+      },
+      "edits_gold_function": {
+        "mean": 0.35,
+        "lo": 0.26,
+        "hi": 0.44,
+        "n": 100
+      },
+      "has_undefined_symbol": {
+        "mean": 0.01,
+        "lo": 0.0,
+        "hi": 0.03,
+        "n": 100
+      }
+    },
+    "ast_bm25": {
+      "n": 100,
+      "mean_prompt_tokens": 2586.14,
+      "mean_seconds": 32.8685,
+      "has_edit": {
+        "mean": 0.66,
+        "lo": 0.57,
+        "hi": 0.75,
+        "n": 100
+      },
+      "search_found": {
+        "mean": 0.48,
+        "lo": 0.38,
+        "hi": 0.58,
+        "n": 100
+      },
+      "edits_gold_function": {
+        "mean": 0.29,
+        "lo": 0.2,
+        "hi": 0.38,
+        "n": 100
+      },
+      "has_undefined_symbol": {
+        "mean": 0.0,
+        "lo": 0.0,
+        "hi": 0.0,
+        "n": 100
+      }
+    },
+    "chunk_bm25": {
+      "n": 100,
+      "mean_prompt_tokens": 2581.89,
+      "mean_seconds": 32.3346,
+      "has_edit": {
+        "mean": 0.71,
+        "lo": 0.62,
+        "hi": 0.8,
+        "n": 100
+      },
+      "search_found": {
+        "mean": 0.555,
+        "lo": 0.455,
+        "hi": 0.65,
+        "n": 100
+      },
+      "edits_gold_function": {
+        "mean": 0.31,
+        "lo": 0.22,
+        "hi": 0.4,
+        "n": 100
+      },
+      "has_undefined_symbol": {
+        "mean": 0.0,
+        "lo": 0.0,
+        "hi": 0.0,
+        "n": 100
+      }
+    },
+    "line_window": {
+      "n": 100,
+      "mean_prompt_tokens": 2579.74,
+      "mean_seconds": 25.9796,
+      "has_edit": {
+        "mean": 0.82,
+        "lo": 0.74,
+        "hi": 0.89,
+        "n": 100
+      },
+      "search_found": {
+        "mean": 0.41,
+        "lo": 0.32,
+        "hi": 0.51,
+        "n": 100
+      },
+      "edits_gold_function": {
+        "mean": 0.23,
+        "lo": 0.15,
+        "hi": 0.31024999999999636,
+        "n": 100
+      },
+      "has_undefined_symbol": {
+        "mean": 0.03,
+        "lo": 0.0,
+        "hi": 0.07,
+        "n": 100
+      }
+    }
+  },
+  "paired": [
+    {
+      "a": "ast_trained",
+      "b": "full",
+      "metric": "edits_gold_function",
+      "diff": -0.09375,
+      "lo": -0.21875,
+      "hi": 0.03125,
+      "p": 0.1604,
+      "n": 64
+    },
+    {
+      "a": "ast_trained",
+      "b": "full",
+      "metric": "has_undefined_symbol",
+      "diff": 0.0,
+      "lo": -0.046875,
+      "hi": 0.046875,
+      "p": 1.0,
+      "n": 64
+    },
+    {
+      "a": "ast_trained",
+      "b": "ast_bm25",
+      "metric": "edits_gold_function",
+      "diff": 0.06,
+      "lo": -0.03,
+      "hi": 0.15,
+      "p": 0.2082,
+      "n": 100
+    },
+    {
+      "a": "ast_trained",
+      "b": "ast_bm25",
+      "metric": "has_undefined_symbol",
+      "diff": 0.01,
+      "lo": 0.0,
+      "hi": 0.03,
+      "p": 0.743,
+      "n": 100
+    },
+    {
+      "a": "ast_trained",
+      "b": "chunk_bm25",
+      "metric": "edits_gold_function",
+      "diff": 0.04,
+      "lo": -0.06,
+      "hi": 0.14,
+      "p": 0.4648,
+      "n": 100
+    },
+    {
+      "a": "ast_trained",
+      "b": "chunk_bm25",
+      "metric": "has_undefined_symbol",
+      "diff": 0.01,
+      "lo": 0.0,
+      "hi": 0.03,
+      "p": 0.743,
+      "n": 100
+    },
+    {
+      "a": "ast_trained",
+      "b": "line_window",
+      "metric": "edits_gold_function",
+      "diff": 0.12,
+      "lo": 0.01,
+      "hi": 0.23,
+      "p": 0.0388,
+      "n": 100
+    },
+    {
+      "a": "ast_trained",
+      "b": "line_window",
+      "metric": "has_undefined_symbol",
+      "diff": -0.02,
+      "lo": -0.06,
+      "hi": 0.02,
+      "p": 0.4332,
+      "n": 100
+    }
+  ]
+}

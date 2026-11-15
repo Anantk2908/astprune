@@ -54,15 +54,17 @@ AST + LLM perplexity, in the table above, covers the gap: LongCodeZip's ranking 
 Because the third-party runs cover different sets of issues, this table puts each one next to our ranker on exactly the issues it ran on. Recall cells are theirs / ours.
 
 <!-- table:lite_external -->
-Third-party baselines on lite, each next to our trained ranker on exactly the issues it ran on. Recall cells are theirs / ours, in percent. The difference is paired over the same issues, with a 95% bootstrap interval. Seconds per file include model scoring, on our laptop GPU.
+Third-party baselines on lite, and LongCodeZip's ranking criterion on our nodes (AST + LLM perplexity), each next to our trained ranker on exactly the issues it ran on. Recall cells are theirs / ours, in percent. The difference is paired over the same issues, with a 95% bootstrap interval. Seconds per file include model scoring, on our laptop GPU.
 
 | Method | Files | Issues | Recall @10% | Recall @25% | Recall @50% | Ours minus them @25% (pp) | Line recall @25% | Parses @25% | Seconds per file |
 |---|---|---|---|---|---|---|---|---|---|
 | SWE-Pruner (released checkpoint) | Gold files only | 274 | 15.1 / 49.5 | 26.3 / 74.9 | 43.6 / 88.0 | +48.6 [+42.7, +54.6] | 73.0 / 69.3 | 0.0 | 6.81 |
 | LongCodeZip (coarse stage) | Gold files only | 95 | 32.2 / 50.7 | 52.5 / 71.1 | 69.1 / 86.8 | +18.6 [+7.0, +30.0] | 65.8 / 67.8 | 17.0 | 7.69 |
 | LongCodeZip (full) | Gold files only | 40 | 28.1 / 57.5 | 41.2 / 78.8 | 56.7 / 91.2 | +37.5 [+21.2, +53.8] | 58.1 / 74.7 | 4.8 | 40.79 |
+| AST + LLM perplexity | Gold files only | 274 | 43.6 / 49.5 | 63.0 / 74.9 | 81.0 / 88.0 | +11.9 [+6.3, +17.5] | 59.6 / 69.3 | 100.0 | 4.27 |
 | AST + trained ranker (ours) | Gold files only | 274 |  |  |  |  |  | 100.0 | 0.16 |
 | SWE-Pruner (released checkpoint) | Gold files + direct imports | 274 | 32.0 / 81.8 | 54.6 / 94.3 | 81.0 / 98.0 | +39.8 [+33.9, +45.7] | 87.6 / 87.8 | 14.7 | 4.29 |
+| AST + LLM perplexity | Gold files + direct imports | 274 | 70.3 / 81.8 | 82.1 / 94.3 | 90.0 / 98.0 | +12.2 [+7.7, +16.8] | 78.9 / 87.8 | 100.0 | 1.76 |
 | AST + trained ranker (ours) | Gold files + direct imports | 274 |  |  |  |  |  | 100.0 | 0.03 |
 <!-- /table -->
 
@@ -71,6 +73,7 @@ How to read it:
 - On gold-function recall our ranker is ahead of every third-party system at every budget, by wide margins.
 - On gold-line recall, SWE-Pruner is level with our ranker when imports are included. With gold files only it is ahead at the 10% budget (58.9% against 45.9%, from `results/summary/lite_oracle_paired.csv`). So it is good at finding the edited lines. It does not keep the functions around them whole, and its output almost never parses as Python.
 - LongCodeZip's coarse stage is the closest in spirit to our method, since it also ranks whole functions. On the same 95 issues it is about level with AST + BM25 at the 10% and 25% budgets (32.2% and 52.5%, against 34.4% and 51.6% for BM25) and below it at 50%. The full variant scores lower than its coarse stage, partly because it leaves part of the budget unused. Keep in mind that both ran with a 1.5B scorer instead of the 7B one from the paper.
+- AST + LLM perplexity is LongCodeZip's ranking criterion on our nodes, with the same 1.5B model, on every issue. It is the best training-free ranker we ran at the 10% and 25% budgets, and our ranker is still about 12 points ahead at 25% with either set of files. It is also roughly 25 to 60 times slower per file (the last column).
 
 ## Installing them
 

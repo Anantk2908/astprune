@@ -1,6 +1,6 @@
 # Error analysis
 
-This looks at every gold function that a method failed to keep in full. It covers our trained ranker and AST + BM25, the strongest training-free method on function recall. The setting is SWE-bench Lite with gold files plus their imports. The 25% budget is the main one, and the 10% budget adds more cases.
+This looks at every gold function that a method failed to keep in full. It covers our trained ranker and AST + BM25, the strongest baseline that needs no neural model. (AST + LLM perplexity is stronger at tight budgets, but it finished after this analysis was set up.) The setting is SWE-bench Lite with gold files plus their imports. The 25% budget is the main one, and the 10% budget adds more cases.
 
 ## How the cases were collected
 

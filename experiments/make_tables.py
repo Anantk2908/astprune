@@ -184,9 +184,45 @@ def external_table(split: str) -> None:
                      f"{sum((r['prep_ms'] + r['prune_ms']) / r['n_files'] for r in rows25) / len(rows25) / 1000:.2f}"])
     if len(body) > 2:
         write(f"{split}_external", header, body,
-              f"Third-party baselines on {split}, each next to our trained ranker on exactly the issues it ran on. "
+              f"Third-party baselines on {split}, and LongCodeZip's ranking criterion on our nodes (AST + LLM perplexity), "
+              "each next to our trained ranker on exactly the issues it ran on. "
               "Recall cells are theirs / ours, in percent. The difference is paired over the same issues, "
               "with a 95% bootstrap interval. Seconds per file include model scoring, on our laptop GPU.")
+
+
+def downstream_table(split: str) -> None:
+    """The downstream check (experiments/downstream.py), one table per model tag."""
+    import json
+
+    for path in sorted((PROJECT_ROOT / "results" / "downstream").glob("*/summary.json")):
+        s = json.loads(path.read_text())
+        if s.get("split") != split:
+            continue
+        rows = [json.loads(line) for line in (path.parent / "rows.jsonl").open()]
+        fits = {r["instance_id"] for r in rows if r["condition"] == "full"}
+        paired = {p["b"]: p for p in s["paired"] if p["metric"] == "edits_gold_function"}
+        header = ["Context", "Issues", "Prompt tokens", "Edits that apply", "Edits a gold function",
+                  "Ours minus this (pp)", "Calls an undefined name"]
+        body = []
+        for cond, c in s["conditions"].items():
+            def ci(m):
+                return f"{100 * c[m]['mean']:.1f} [{100 * c[m]['lo']:.1f}, {100 * c[m]['hi']:.1f}]"
+            p = paired.get(cond)
+            body.append(["Whole gold files, no pruning" if cond == "full" else label(cond), str(c["n"]),
+                         f"{c['mean_prompt_tokens']:,.0f}", f"{100 * c['search_found']['mean']:.1f}",
+                         ci("edits_gold_function"),
+                         f"{100 * p['diff']:+.1f} [{100 * p['lo']:+.1f}, {100 * p['hi']:+.1f}]" if p else "",
+                         f"{100 * c['has_undefined_symbol']['mean']:.1f}"])
+        matched = [r["prompt_tokens"] for r in rows if r["condition"] == "ast_trained" and r["instance_id"] in fits]
+        note = (f" Whole files were only given when they were short enough, on {len(fits)} issues; there the "
+                f"trained ranker's prompts average {sum(matched) / len(matched):,.0f} tokens.") if matched else ""
+        model = s["model"].split("/")[-1] + (" in 4-bit" if s.get("four_bit") else "")
+        write(f"{split}_downstream_{path.parent.name}", header, body,
+              f"Downstream check on {split}: {model} reads the issue and one view of the gold files and writes "
+              f"SEARCH/REPLACE edits. Budget {100 * s['budget']:.0f}% of the file tokens, at most "
+              f"{s['max_budget_tokens']:,} tokens. Greedy decoding, no tests run. In percent of issues, except "
+              "\"edits that apply\", the share of edits whose SEARCH text is found in the file. Intervals are 95% "
+              "bootstrap intervals, and the difference is paired over the same issues." + note)
 
 
 def main() -> None:
@@ -201,6 +237,7 @@ def main() -> None:
     paired_table(args.split, "bm25_5")
     ablation_table(args.split, "oracle_imports")
     external_table(args.split)
+    downstream_table(args.split)
 
 
 if __name__ == "__main__":

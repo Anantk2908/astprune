@@ -24,6 +24,7 @@ Gold-function recall with 95% bootstrap intervals and other metrics, in percent.
 | AST + random order | 9.3 [6.0, 12.8] | 20.7 [16.2, 25.3] | 44.5 [38.9, 50.1] | 21.1 | 18.2 | 23.2 | 1.2 | 100.0 |
 | AST + BM25 | 60.9 [55.2, 66.5] | 77.1 [72.2, 81.8] | 90.7 [87.2, 94.0] | 76.2 | 74.5 | 81.5 | 6.5 | 100.0 |
 | AST + UniXcoder, zero-shot | 46.6 [40.9, 52.4] | 64.0 [58.3, 69.5] | 83.5 [79.0, 87.6] | 66.2 | 61.7 | 68.8 | 4.8 | 100.0 |
+| AST + LLM perplexity | 70.3 [64.9, 75.5] | 82.1 [77.6, 86.5] | 90.0 [86.3, 93.2] | 78.9 | 81.4 | 83.6 | 5.6 | 100.0 |
 | AST + trained ranker (ours) | 81.8 [77.2, 86.1] | 94.3 [91.6, 96.9] | 98.0 [96.4, 99.3] | 87.8 | 93.8 | 95.4 | 7.1 | 100.0 |
 | AST + trained ranker + BM25 (ours) | 79.6 [74.8, 84.3] | 92.9 [89.8, 95.8] | 97.6 [95.6, 99.3] | 87.0 | 92.3 | 93.6 | 7.0 | 100.0 |
 <!-- /table -->
@@ -33,6 +34,7 @@ Gold-function recall with 95% bootstrap intervals and other metrics, in percent.
 What we take from this:
 
 - **Training helps.** Same nodes, same selector, same encoder architecture. Only the weights differ between "UniXcoder, zero-shot" and "trained ranker". The trained ranker also beats BM25 on the same nodes at every budget. Paired differences with intervals are in [results/tables/lite_oracle_imports_paired.md](results/tables/lite_oracle_imports_paired.md).
+- **A small trained encoder beats a bigger model used without training.** AST + LLM perplexity ranks the same nodes by LongCodeZip's criterion with Qwen2.5-Coder-1.5B, about twelve times the size of our encoder. It is the best training-free ranker here at the 10% and 25% budgets, and still about 12 points behind the trained ranker at 25%. It also needs 1.76 seconds per file where ours needs 0.03 (table below).
 - **The gap shrinks as the budget grows**, as we expected. With enough room almost any ranking keeps the right function.
 - **Whole functions beat lines and chunks on function recall.** On gold-line recall, which does not care about function boundaries, chunk retrieval with BM25 is about level with BM25 on AST nodes. So part of the advantage of AST nodes is that they keep functions intact, not that they find the edited lines more often. The chunk view parses as Python in about one case out of eight.
 - **Something we expected to help did not.** Fusing BM25 ranks with the trained ranker's ranks scores a little below the trained ranker alone.
@@ -40,15 +42,17 @@ What we take from this:
 Against released systems, each on exactly the issues it ran on (recall cells are theirs / ours):
 
 <!-- table:lite_external -->
-Third-party baselines on lite, each next to our trained ranker on exactly the issues it ran on. Recall cells are theirs / ours, in percent. The difference is paired over the same issues, with a 95% bootstrap interval. Seconds per file include model scoring, on our laptop GPU.
+Third-party baselines on lite, and LongCodeZip's ranking criterion on our nodes (AST + LLM perplexity), each next to our trained ranker on exactly the issues it ran on. Recall cells are theirs / ours, in percent. The difference is paired over the same issues, with a 95% bootstrap interval. Seconds per file include model scoring, on our laptop GPU.
 
 | Method | Files | Issues | Recall @10% | Recall @25% | Recall @50% | Ours minus them @25% (pp) | Line recall @25% | Parses @25% | Seconds per file |
 |---|---|---|---|---|---|---|---|---|---|
 | SWE-Pruner (released checkpoint) | Gold files only | 274 | 15.1 / 49.5 | 26.3 / 74.9 | 43.6 / 88.0 | +48.6 [+42.7, +54.6] | 73.0 / 69.3 | 0.0 | 6.81 |
 | LongCodeZip (coarse stage) | Gold files only | 95 | 32.2 / 50.7 | 52.5 / 71.1 | 69.1 / 86.8 | +18.6 [+7.0, +30.0] | 65.8 / 67.8 | 17.0 | 7.69 |
 | LongCodeZip (full) | Gold files only | 40 | 28.1 / 57.5 | 41.2 / 78.8 | 56.7 / 91.2 | +37.5 [+21.2, +53.8] | 58.1 / 74.7 | 4.8 | 40.79 |
+| AST + LLM perplexity | Gold files only | 274 | 43.6 / 49.5 | 63.0 / 74.9 | 81.0 / 88.0 | +11.9 [+6.3, +17.5] | 59.6 / 69.3 | 100.0 | 4.27 |
 | AST + trained ranker (ours) | Gold files only | 274 |  |  |  |  |  | 100.0 | 0.16 |
 | SWE-Pruner (released checkpoint) | Gold files + direct imports | 274 | 32.0 / 81.8 | 54.6 / 94.3 | 81.0 / 98.0 | +39.8 [+33.9, +45.7] | 87.6 / 87.8 | 14.7 | 4.29 |
+| AST + LLM perplexity | Gold files + direct imports | 274 | 70.3 / 81.8 | 82.1 / 94.3 | 90.0 / 98.0 | +12.2 [+7.7, +16.8] | 78.9 / 87.8 | 100.0 | 1.76 |
 | AST + trained ranker (ours) | Gold files + direct imports | 274 |  |  |  |  |  | 100.0 | 0.03 |
 <!-- /table -->
 
@@ -73,6 +77,24 @@ Gold-function recall (%) at a 25% budget under each candidate-file setting, veri
 <!-- /table -->
 
 All tuning was done on the SWE-bench dev split. The test sets were run once, after the choices were written down ([docs/PROGRESS.md](docs/PROGRESS.md), "Choices frozen on dev").
+
+### Does it change what a model writes?
+
+A small static check, not a bug-fixing benchmark. A local model (Qwen2.5-Coder-7B-Instruct in 4-bit) reads the issue and one view of the gold files and writes SEARCH/REPLACE edits. We count how often an edit lands in a function the real fix changed. No tests are run.
+
+<!-- table:lite_downstream_qwen7b_4bit -->
+Downstream check on lite: Qwen2.5-Coder-7B-Instruct in 4-bit reads the issue and one view of the gold files and writes SEARCH/REPLACE edits. Budget 25% of the file tokens, at most 4,000 tokens. Greedy decoding, no tests run. In percent of issues, except "edits that apply", the share of edits whose SEARCH text is found in the file. Intervals are 95% bootstrap intervals, and the difference is paired over the same issues. Whole files were only given when they were short enough, on 64 issues; there the trained ranker's prompts average 1,561 tokens.
+
+| Context | Issues | Prompt tokens | Edits that apply | Edits a gold function | Ours minus this (pp) | Calls an undefined name |
+|---|---|---|---|---|---|---|
+| Whole gold files, no pruning | 64 | 4,676 | 62.5 | 45.3 [32.8, 57.8] | -9.4 [-21.9, +3.1] | 1.6 |
+| AST + trained ranker (ours) | 100 | 2,587 | 50.0 | 35.0 [26.0, 44.0] |  | 1.0 |
+| AST + BM25 | 100 | 2,586 | 48.0 | 29.0 [20.0, 38.0] | +6.0 [-3.0, +15.0] | 0.0 |
+| Chunk RAG (BM25) | 100 | 2,582 | 55.5 | 31.0 [22.0, 40.0] | +4.0 [-6.0, +14.0] | 0.0 |
+| Line window | 100 | 2,580 | 41.0 | 23.0 [15.0, 31.0] | +12.0 [+1.0, +23.0] | 3.0 |
+<!-- /table -->
+
+Our view leads to the most edits in the right function among the pruned views, but with 100 issues only the gap to the line window is clearly bigger than the noise. Whole files do better where they fit, with three times the prompt. So the direction matches the recall numbers, and the check is too small to say more. The script is [experiments/downstream.py](experiments/downstream.py) and every answer the model wrote is in [results/downstream/](results/downstream/).
 
 ## Quick start
 
@@ -192,7 +214,7 @@ data/README.md       where the data comes from and how to rebuild it
 ## Limits
 
 - Python only.
-- The evaluation asks whether the right code survives pruning. It does not run tests, so it does not show that an agent fixes more bugs with the pruned view. The small downstream check in [results/downstream/](results/downstream/) is a static proxy with a 7B model and should be read as that.
+- The evaluation asks whether the right code survives pruning. It does not run tests, so it does not show that an agent fixes more bugs with the pruned view. The downstream check above is a static proxy with a 7B model on 100 issues and should be read as that.
 - Issues whose fix only adds new functions have nothing to keep and are not in the recall numbers. The counts are in `results/data/`.
 - The ranker reads the first 256 tokens of a function and the first 512 tokens of an issue. A long function is judged by its head.
 - If a function is larger than the whole budget it cannot be kept. It comes back as a signature, and the caller has to ask again with a larger budget. The most common miss is a different one though: a function the issue never names, ranked below what fits. See [docs/error_analysis.md](docs/error_analysis.md).

@@ -10,5 +10,6 @@ Gold-function recall (%) at a 25% budget under each candidate-file setting, lite
 | AST + random order | 19.8 | 20.7 | 14.3 | 17.8 | 18.9 |
 | AST + BM25 | 58.0 | 77.1 | 50.8 | 60.3 | 67.1 |
 | AST + UniXcoder, zero-shot | 47.7 | 64.0 | 48.3 | 54.3 | 61.3 |
+| AST + LLM perplexity | 63.0 | 82.1 | n/a | n/a | n/a |
 | AST + trained ranker (ours) | 74.9 | 94.3 | 68.4 | 76.1 | 83.4 |
 | AST + trained ranker + BM25 (ours) | 73.5 | 92.9 | 66.7 | 75.4 | 82.5 |

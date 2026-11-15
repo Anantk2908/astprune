@@ -46,7 +46,7 @@ LABELS = {
     "ast_random": "AST + random order",
     "ast_bm25": "AST + BM25",
     "ast_unixcoder": "AST + UniXcoder, zero-shot",
-    "ast_ppl": "AST + perplexity (LongCodeZip criterion)",
+    "ast_ppl": "AST + LLM perplexity",
     "ast_trained": "AST + trained ranker (ours)",
     "ast_hybrid": "AST + trained + BM25 fusion",
     "ast_trained_nosig": "Ours, no signature tier",
@@ -351,11 +351,12 @@ def build() -> Deck:
                    "Same nodes, same selector. Blue against green is the effect of training alone. "
                    "The gap narrows as the budget grows, as expected.")
     deck.picture(s, FIGURES / "lite_recall_vs_budget.png", 0.5, 1.8, 7.4, 5.0)
-    order = ["line_window", "chunk_bm25", "skeleton", "ast_unixcoder", "ast_bm25", "ast_trained"]
+    order = [m for m in ["line_window", "chunk_bm25", "skeleton", "ast_unixcoder", "ast_bm25", "ast_ppl", "ast_trained"]
+             if num.has("lite", MAIN, m)]
     deck.table(s, ["Lite, recall %", "10%", "25%", "50%"],
                [[LABELS[m], r(m, "r0.10"), r(m, "r0.25"), r(m, "r0.50")] for m in order],
-               8.0, 2.0, 4.9, col_widths=[3.2, 0.9, 0.9, 0.9], size=13, highlight=(5,))
-    deck.text(s, f"Gold files plus direct imports, {n_lite} issues.", 8.0, 5.2, 4.9, 0.4, size=12, color=SECONDARY)
+               8.0, 2.0, 4.9, col_widths=[3.2, 0.9, 0.9, 0.9], size=13, highlight=(len(order) - 1,))
+    deck.text(s, f"Gold files plus direct imports, {n_lite} issues.", 8.0, 5.6, 4.9, 0.4, size=12, color=SECONDARY)
 
     # 9. hypotheses with intervals
     s = deck.slide("Both hypotheses, with intervals", "Evaluation",
@@ -364,16 +365,19 @@ def build() -> Deck:
     for name, a, b in [("H1: AST + BM25 minus line window", "ast_bm25", "line_window"),
                        ("H1: AST + BM25 minus chunk RAG (BM25)", "ast_bm25", "chunk_bm25"),
                        ("H2: trained minus zero-shot, same encoder", "ast_trained", "ast_unixcoder"),
-                       ("H2: trained minus BM25, same nodes", "ast_trained", "ast_bm25")]:
+                       ("H2: trained minus BM25, same nodes", "ast_trained", "ast_bm25"),
+                       ("H2: trained minus LLM perplexity, same nodes", "ast_trained", "ast_ppl")]:
+        if not num.has("lite", MAIN, b):
+            continue
         rows.append([name] + [num.diff("lite", MAIN, a, b, bud) for bud in ("r0.10", "r0.25", "r0.50")])
     deck.table(s, ["Paired difference in gold-function recall, Lite", "10% budget", "25% budget", "50% budget"],
-               rows, 0.7, 1.9, 11.9, col_widths=[5.0, 2.3, 2.3, 2.3], size=14, highlight=(2, 3))
+               rows, 0.7, 1.9, 11.9, col_widths=[5.0, 2.3, 2.3, 2.3], size=14, highlight=tuple(range(2, len(rows))))
     deck.bullets(s, [
         "H1 holds for function recall. Whole functions beat lines and chunks by a wide margin.",
         f"The fair caveat: on gold-line recall at 25%, chunk BM25 scores {r('chunk_bm25', metric='gold_line_recall')} "
         f"and AST + BM25 {r('ast_bm25', metric='gold_line_recall')}. Part of the AST advantage is keeping functions intact.",
-        f"H2 holds on both metrics. Trained ranker line recall at 25%: {r('ast_trained', metric='gold_line_recall')}.",
-    ], 0.7, 4.5, 11.9, 2.3, size=17)
+        f"H2 holds on both metrics, also against a 1.5B code model's perplexity. Trained ranker line recall at 25%: {r('ast_trained', metric='gold_line_recall')}.",
+    ], 0.7, 4.75, 11.9, 2.3, size=17)
 
     # 10. second test set and retrieved files
     s = deck.slide("It holds on a second test set and with retrieved files", "Evaluation",
@@ -405,7 +409,8 @@ def build() -> Deck:
     # 12. third-party baselines, from the same-issue table
     ext_md = RESULTS / "tables" / "lite_external.md"
     if ext_md.exists():
-        lines = [l for l in ext_md.read_text().splitlines() if l.startswith("| ") and "(ours)" not in l]
+        lines = [l for l in ext_md.read_text().splitlines()
+                 if l.startswith("| ") and "(ours)" not in l and "perplexity" not in l]
         rows = [[c.strip() for c in l.strip("|").split("|")] for l in lines[1:]]
         s = deck.slide("Against released systems, on the same issues", "Evaluation",
                        "Each row compares a released system with our ranker on exactly the issues it ran on. "
@@ -454,7 +459,33 @@ def build() -> Deck:
     else:
         deck.skipped.append("error analysis (results/error_analysis/categories.json or figure missing)")
 
-    # 15. demo
+    # 15. downstream check
+    down = read_json(RESULTS / "downstream" / "qwen7b_4bit" / "summary.json")
+    if down:
+        cond = down["conditions"]
+        paired = {p["b"]: p for p in down["paired"] if p["metric"] == "edits_gold_function"}
+        s = deck.slide("Does a model write better edits from it?", "Evaluation",
+                       "A static check, no tests run. Point estimates favour our view, but with 100 issues only the "
+                       "gap to the line window is outside the noise. Whole files do better where they fit, at three "
+                       "times the prompt.")
+        rows = []
+        for c, v in cond.items():
+            p = paired.get(c)
+            rows.append(["Whole files, no pruning" if c == "full" else LABELS.get(c, c), str(v["n"]),
+                         f"{v['mean_prompt_tokens']:,.0f}", f"{100 * v['edits_gold_function']['mean']:.0f}%",
+                         f"{100 * p['diff']:+.0f} [{100 * p['lo']:+.0f}, {100 * p['hi']:+.0f}]" if p else ""])
+        deck.table(s, ["Lite, 25% budget", "Issues", "Prompt tokens", "Edits a gold function", "Ours minus this"],
+                   rows, 0.7, 1.9, 11.9, col_widths=[4.3, 1.2, 2.0, 2.4, 2.0], size=15,
+                   highlight=tuple(i for i, c in enumerate(cond) if c == "ast_trained"))
+        worst = max(100 * v["has_undefined_symbol"]["mean"] for v in cond.values())
+        deck.text(s, f"{down['model'].split('/')[-1]}{' in 4-bit' if down.get('four_bit') else ''} writes "
+                     "SEARCH/REPLACE edits from the issue and one view of the gold files. Whole files were only given "
+                     f"when short enough. Calls to undefined names were rare everywhere (at most {worst:.0f}%).",
+                  0.7, 4.9, 11.9, 1.0, size=14, color=SECONDARY)
+    else:
+        deck.skipped.append("downstream check (results/downstream/qwen7b_4bit/summary.json missing)")
+
+    # 16. demo
     s = deck.slide("Demo: the pruner as an MCP tool", "Demo",
                    "Run python demo/app.py, then sample 2 at a 10% budget, then a bad request to show error handling. "
                    "Backup: the recorded video.")
@@ -474,7 +505,7 @@ def build() -> Deck:
             items.append(f"Reliability check: {ok} of {runs} scripted runs succeeded.")
     deck.bullets(s, items, 7.2, 1.9, 5.5, 4.8, size=17, gap=12)
 
-    # 16. limits
+    # 17. limits
     s = deck.slide("Limits", "Evaluation", "Say these before someone asks.")
     deck.bullets(s, [
         "We measure whether the right code survives, not whether an agent then fixes the bug. No tests are run.",
@@ -485,7 +516,7 @@ def build() -> Deck:
         "Third-party baselines ran under the hardware limits of one 8 GB laptop GPU, stated in the repository.",
     ], 0.7, 1.9, 11.9, 4.9, size=19, gap=12)
 
-    # 17. takeaways
+    # 18. takeaways
     s = deck.slide("Takeaways", "Summary", "Three sentences, then questions.")
     deck.card(s, f"{r('ast_trained', 'r0.10')}%", f"gold functions kept at a 10% budget, against {r('ast_bm25', 'r0.10')}% "
               "for BM25 on the same nodes", 0.7, 1.9, 3.8, 1.7)

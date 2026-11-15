@@ -33,7 +33,7 @@ The scorer is a bi-encoder. The issue and each unit are passed separately throug
 
 We chose a bi-encoder over a cross-encoder for cost. A cross-encoder reads the issue and a unit together and would likely rank better, but it needs one forward pass per pair. With a bi-encoder, unit embeddings depend only on the code. They are computed once, reused for every budget, and shared between issues that touch the same files.
 
-\paragraph{Training.} For an issue with gold units $P$ and other units $N$, we sample one positive $p \in P$ and minimize the InfoNCE loss~\cite{infonce}
+\paragraph{Training} For an issue with gold units $P$ and other units $N$, we sample one positive $p \in P$ and minimize the InfoNCE loss~\cite{infonce}
 \[
 \mathcal{L} = -\log \frac{\exp(s(q,p)/\tau)}{\exp(s(q,p)/\tau) + \sum_{n \in \mathcal{N}} \exp(s(q,n)/\tau)},
 \]

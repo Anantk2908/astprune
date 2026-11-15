@@ -38,6 +38,12 @@ Paired bootstrap differences in gold-function recall, lite, gold files + direct 
 | H2 | AST + trained ranker + BM25 (ours) | AST + BM25 | 1000 tok | +17.2 | [+12.0, +22.4] | <0.001 | 271 |
 | H2 | AST + trained ranker + BM25 (ours) | AST + BM25 | 2000 tok | +16.7 | [+11.6, +22.1] | <0.001 | 268 |
 | H2 | AST + trained ranker + BM25 (ours) | AST + BM25 | 4000 tok | +18.2 | [+13.1, +23.3] | <0.001 | 262 |
+| H2 | AST + trained ranker (ours) | AST + LLM perplexity | 10% | +11.4 | [+6.2, +16.5] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + LLM perplexity | 25% | +12.2 | [+7.7, +16.8] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + LLM perplexity | 50% | +8.0 | [+4.9, +11.3] | <0.001 | 274 |
+| H2 | AST + trained ranker (ours) | AST + LLM perplexity | 1000 tok | +6.6 | [+0.9, +12.1] | 0.021 | 271 |
+| H2 | AST + trained ranker (ours) | AST + LLM perplexity | 2000 tok | +8.6 | [+3.4, +13.9] | 0.001 | 268 |
+| H2 | AST + trained ranker (ours) | AST + LLM perplexity | 4000 tok | +12.6 | [+7.7, +17.6] | <0.001 | 262 |
 | external | AST + trained ranker (ours) | SWE-Pruner (released checkpoint) | 10% | +49.7 | [+43.4, +55.8] | <0.001 | 274 |
 | external | AST + trained ranker (ours) | SWE-Pruner (released checkpoint) | 25% | +39.8 | [+33.9, +45.7] | <0.001 | 274 |
 | external | AST + trained ranker (ours) | SWE-Pruner (released checkpoint) | 50% | +17.0 | [+12.6, +21.5] | <0.001 | 274 |

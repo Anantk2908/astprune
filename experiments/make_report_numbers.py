@@ -131,6 +131,17 @@ def stats() -> None:
                 put("s", f"down:{tag}:{cond}:{m}", f"{s[m]['mean'] * 100:.1f}")
                 put("s", f"down:{tag}:{cond}:{m}:lo", f"{s[m]['lo'] * 100:.1f}")
                 put("s", f"down:{tag}:{cond}:{m}:hi", f"{s[m]['hi'] * 100:.1f}")
+        for p in d.get("paired", []):
+            key = f"down:{tag}:diff:{p['b']}:{p['metric']}"
+            put("s", key, f"{p['diff'] * 100:+.1f}")
+            put("s", f"{key}:lo", f"{p['lo'] * 100:+.1f}")
+            put("s", f"{key}:hi", f"{p['hi'] * 100:+.1f}")
+        rows = [json.loads(line) for line in (path.parent / "rows.jsonl").open()]
+        fits = {r["instance_id"] for r in rows if r["condition"] == "full"}
+        for cond in d["conditions"]:
+            xs = [r["prompt_tokens"] for r in rows if r["condition"] == cond and r["instance_id"] in fits]
+            if xs:
+                put("s", f"down:{tag}:{cond}:prompt_where_full_fits", f"{sum(xs) / len(xs):,.0f}")
     path = PROJECT_ROOT / "results" / "demo_reliability.json"
     if path.exists():
         d = json.loads(path.read_text())

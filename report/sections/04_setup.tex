@@ -12,6 +12,7 @@ All tuning used the SWE-bench dev split: 225 issues from 6 repositories that occ
 \label{tab:data}
 \centering
 \footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lrrrrr@{}}
 \toprule
 Split & Repos & Issues & Labelled & With gold fn. & Gold fn. \\
@@ -25,7 +26,7 @@ SWE-bench Verified & \stat{verified:repos} & \stat{verified:instances_total} & \
 \end{tabular}
 \end{table}
 
-\paragraph{Leakage.} Train, dev and test share no repository. This is checked in code when training examples are built, and the build stops on any overlap. SWE-bench train and SWE-Gym share two repositories, and \stat{examples:dropped_duplicate} duplicate issues were removed. The field \texttt{hints\_text}, which holds comments written after an issue was filed, is never read.
+\paragraph{Leakage} Train, dev and test share no repository. This is checked in code when training examples are built, and the build stops on any overlap. SWE-bench train and SWE-Gym share two repositories, and \stat{examples:dropped_duplicate} duplicate issues were removed. The field \texttt{hints\_text}, which holds comments written after an issue was filed, is never read.
 
 \subsection{Labels}
 \label{sec:labels}

@@ -115,3 +115,10 @@ Left for the team: put the 484 MB checkpoint on a release page and fill the link
 - Written: `docs/baselines.md`, `docs/error_analysis.md`, `report/sections/06_analysis.tex`. Slides now have 17 slides.
 - Fresh-clone check passed: clone into a scratch folder, new venv, `pip install -r requirements.txt && pip install -e .`, then `pytest` (all green) and `python demo/app.py --scorer bm25` on CPU.
 - Error analysis at the 10% budget added (56 losses for ours, 129 for BM25). It corrected one claim: signature-only losses are more common for BM25 at 25% but level at 10%.
+
+## Nov 14, night: perplexity baseline and downstream check
+
+- AST + LLM perplexity (LongCodeZip's criterion on our nodes, Qwen2.5-Coder-1.5B) finished on all of Lite in both oracle settings. It is the best training-free ranker at the 10% and 25% budgets (82.1% at 25% with imports, BM25 77.1%), and the trained ranker is +12.2 [+7.7, +16.8] points ahead of it at 25%. Scoring takes about 1.8 s per file against 26 ms for ours. Added to the README, the results section of the report and slides 8 and 9. The error analysis still compares against BM25 and now says why.
+- Downstream check with Qwen2.5-Coder-7B-Instruct in 4-bit on 100 Lite issues, gold files only, 25% budget capped at 4,000 tokens: an edit lands in a gold function for 35% of issues with our view, 29% with AST + BM25, 31% with chunk BM25, 23% with a line window, and 45% with whole files on the 64 issues where they fit (at three times the prompt). Only the gap to the line window is outside the noise (+12 [+1, +23]). Reported as a weak static proxy. New table `results/tables/lite_downstream_qwen7b_4bit.md`, report subsection `sec:downstream`, slide 15.
+- Report: fixed doubled punctuation after paragraph headings and a 16 pt overfull table. Still 9 pages, no undefined references.
+- Queue now on the extra training runs (seed1, seed2, unfiltered), then CPU latency and Verified runs for SWE-Pruner and perplexity.
