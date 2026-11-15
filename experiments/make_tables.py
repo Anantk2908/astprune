@@ -121,7 +121,8 @@ def paired_table(split: str, setting: str) -> None:
 
 def ablation_table(split: str, setting: str) -> None:
     rows = index(load(split, setting))
-    variants = sorted({m for m, _, _ in rows if m.startswith(("ast_trained", "ast_bm25", "ast_hybrid"))}, key=sort_key)
+    variants = sorted({m for m, _, _ in rows if m.startswith(("ast_trained", "ast_bm25", "ast_hybrid")) and "@" not in m},
+                      key=sort_key)  # other training runs (name@run) have their own table
     if len(variants) < 3:
         return
     header = ["Selector", "Recall @10%", "Recall @25%", "Recall @50%", "Sig. recall @10%", "Sig. recall @25%", "Line recall @25%"]
@@ -235,6 +236,9 @@ def seeds_table(split: str, setting: str = "oracle_imports") -> None:
     import json
     import statistics
 
+    if split == "dev":  # dev is already in the table as the selection split
+        return
+
     dev, test = index(load("dev", setting)), index(load(split, setting))
     cols = [(dev, "r0.10"), (dev, "r0.25"), (test, "r0.10"), (test, "r0.25"), (test, "r0.50")]
 
@@ -246,7 +250,7 @@ def seeds_table(split: str, setting: str = "oracle_imports") -> None:
     for run, method, name in SEED_RUNS:
         info = PROJECT_ROOT / "results" / "training" / f"{run}.json"
         vals = [val(rows, method, b) for rows, b in cols]
-        if not info.exists() or all(v is None for v in vals):
+        if not info.exists() or all(v is None for v in vals[2:]):  # not evaluated on this test split
             continue
         t = json.loads(info.read_text())
         body.append([name, f"{t['examples_used']:,}", f"{t['best']['step']:,}"]
