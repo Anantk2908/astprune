@@ -12,7 +12,7 @@ Ticked when the phase exit criteria are met and the phase has been audited. Deta
 - [x] Phase 5. External baselines (SWE-Pruner on all of Lite, LongCodeZip on a 100-issue sample with a 1.5B scorer, see docs/baselines.md)
 - [x] Phase 6. Scaling, latency, error analysis (CPU latency is the last queue step)
 - [x] Phase 7. MCP server and demo (20 of 20 reliability runs passed on CPU)
-- [ ] Phase 8. Stretch: downstream effect
+- [x] Phase 8. Stretch: downstream effect (Qwen2.5-Coder-7B 4-bit, 100 Lite issues, results/downstream/qwen7b_4bit)
 - [ ] Phase 9. README, tutorial, notebook, reproduction check
 - [ ] Phase 10. Report and slides
 
