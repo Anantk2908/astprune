@@ -44,7 +44,7 @@ def write(name: str, header: list[str], body: list[list[str]], caption: str, bol
     md = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
     md += ["| " + " | ".join(row) + " |" for row in body]
     (OUT / f"{name}.md").write_text(f"{caption}\n\n" + "\n".join(md) + "\n")
-    esc = lambda t: t.replace("%", r"\%").replace("_", r"\_").replace("&", r"\&")  # noqa: E731
+    esc = lambda t: t.replace("%", r"\%").replace("_", r"\_").replace("&", r"\&").replace("±", r"$\pm$")  # noqa: E731
     tex = [r"\begin{tabular}{l" + "r" * (len(header) - 1) + "}", r"\toprule",
            " & ".join(esc(h) for h in header) + r" \\", r"\midrule"]
     for i, row in enumerate(body):
@@ -225,6 +225,49 @@ def downstream_table(split: str) -> None:
               "bootstrap intervals, and the difference is paired over the same issues." + note)
 
 
+SEED_RUNS = [("main", "ast_trained", "Seed 0 (the main run)"), ("seed1", "ast_trained@seed1", "Seed 1"),
+             ("seed2", "ast_trained@seed2", "Seed 2"),
+             ("unfiltered", "ast_trained@unfiltered", "Seed 0, patches of any size")]
+
+
+def seeds_table(split: str, setting: str = "oracle_imports") -> None:
+    """Training variance: the main run, two more seeds, and a run without the patch-size filter."""
+    import json
+    import statistics
+
+    dev, test = index(load("dev", setting)), index(load(split, setting))
+    cols = [(dev, "r0.10"), (dev, "r0.25"), (test, "r0.10"), (test, "r0.25"), (test, "r0.50")]
+
+    def val(rows, method, budget):
+        r = rows.get((method, budget, "gold_fn_recall"))
+        return 100 * float(r["mean"]) if r and r["mean"] != "" else None
+
+    body, seeds = [], []
+    for run, method, name in SEED_RUNS:
+        info = PROJECT_ROOT / "results" / "training" / f"{run}.json"
+        vals = [val(rows, method, b) for rows, b in cols]
+        if not info.exists() or all(v is None for v in vals):
+            continue
+        t = json.loads(info.read_text())
+        body.append([name, f"{t['examples_used']:,}", f"{t['best']['step']:,}"]
+                    + [f"{v:.1f}" if v is not None else "n/a" for v in vals])
+        if run != "unfiltered":
+            seeds.append(vals)
+    if len(seeds) >= 2:
+        row = [f"Mean ± sd of the {len(seeds)} seeds", "", ""]
+        for i in range(len(cols)):
+            xs = [v[i] for v in seeds if v[i] is not None]
+            row.append(f"{statistics.mean(xs):.1f} ± {statistics.stdev(xs):.1f}" if len(xs) >= 2 else "n/a")
+        body.insert(len(seeds), row)
+    if len(body) > 1:
+        name = split.capitalize()
+        write(f"{split}_seeds", ["Training run", "Examples", "Best step", "Dev @10%", "Dev @25%",
+                                 f"{name} @10%", f"{name} @25%", f"{name} @50%"], body,
+              f"Training variance. Gold-function recall (%) of the trained ranker, gold files + direct imports, "
+              f"on dev (where the checkpoint is chosen) and on {split}. Same data and settings in every run except "
+              "the seed, and in the last row the filter that drops training patches touching more than 5 functions.")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--split", default="lite")
@@ -238,6 +281,7 @@ def main() -> None:
     ablation_table(args.split, "oracle_imports")
     external_table(args.split)
     downstream_table(args.split)
+    seeds_table(args.split)
 
 
 if __name__ == "__main__":
