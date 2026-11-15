@@ -13,8 +13,8 @@ Ticked when the phase exit criteria are met and the phase has been audited. Deta
 - [x] Phase 6. Scaling, latency, error analysis (CPU latency is the last queue step)
 - [x] Phase 7. MCP server and demo (20 of 20 reliability runs passed on CPU)
 - [x] Phase 8. Stretch: downstream effect (Qwen2.5-Coder-7B 4-bit, 100 Lite issues, results/downstream/qwen7b_4bit)
-- [ ] Phase 9. README, tutorial, notebook, reproduction check
-- [ ] Phase 10. Report and slides
+- [x] Phase 9. README, tutorial, notebook, reproduction check (fresh-clone check passed)
+- [x] Phase 10. Report and slides (10-page IEEE report, 18 slides. The final rubric audit by a subagent was not run)
 
 ## Context
 

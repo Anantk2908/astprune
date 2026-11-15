@@ -129,3 +129,9 @@ Left for the team: put the 484 MB checkpoint on a release page and fill the link
 - CPU timing over 10 Lite issues with cold caches: the trained ranker needs 6.9 to 8.2 s per file on the CPU (129.5 ms on the GPU), BM25 about 34 ms. Added to the README, the report (scaling paragraph and a new limitation) and the scaling slide. Without a GPU, BM25 is the practical fallback for many files.
 - Report is now 10 pages (no page limit in the rubric, IEEE template kept as is).
 - Queue now on SWE-Pruner and the perplexity baseline on Verified, the last step.
+
+## Nov 15, morning: wrap-up
+
+- Stopped the last queue step, SWE-Pruner and AST + LLM perplexity on Verified with gold files + imports, at 74 of 500 issues. It ran at about 3 minutes per issue and needed roughly 20 more hours. Nothing reported uses it: Lite has both baselines, and Verified keeps all of our own methods. The partial rows are in `results/runs/verified/oracle_imports/*.jsonl.tmp` (gitignored). They are in dataset order, so not a random sample, and no script reads them.
+- Phases 9 and 10 closed. The fresh-clone check passed earlier. The final rubric audit by a subagent was not run.
+- Left for the team: upload the checkpoint and fill in the README link, push to GitHub, record the backup demo video, check the slides in PowerPoint, rehearse.
